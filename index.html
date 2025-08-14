@@ -1755,19 +1755,49 @@
             // تحديث أحدث الباقات (غير مستخدم إذا لم توجد العناصر)
             const recentPackages = document.getElementById('recentPackages');
             if (recentPackages) {
-                recentPackages.innerHTML = '';
-                const packagesToShow = data.packages.slice(-3).reverse();
-                packagesToShow.forEach(pkg => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${pkg.name}</td>
-                        <td class="currency">${pkg.retailPrice ? formatNumber(pkg.retailPrice) : '-'}</td>
-                        <td class="currency">${pkg.wholesalePrice ? formatNumber(pkg.wholesalePrice) : '-'}</td>
-                        <td class="currency">${pkg.distributorPrice ? formatNumber(pkg.distributorPrice) : '-'}</td>
-                        <td>${formatNumber(data.inventory.filter(i => i.packageId === pkg.id).reduce((sum, i) => sum + i.quantity, 0))}</td>
-                    `;
-                    recentPackages.appendChild(row);
-                });
+                // استخدام DocumentFragment لتحسين الأداء
+                if (window.$dom && window.$dom.schedule) {
+                    window.$dom.schedule(() => {
+                        const fragment = document.createDocumentFragment();
+                        const packagesToShow = data.packages.slice(-3).reverse();
+                        packagesToShow.forEach(pkg => {
+                            const row = window.$safe && window.$safe.row ? 
+                                window.$safe.row([
+                                    pkg.name,
+                                    {text: pkg.retailPrice ? formatNumber(pkg.retailPrice) : '-', className: 'currency'},
+                                    {text: pkg.wholesalePrice ? formatNumber(pkg.wholesalePrice) : '-', className: 'currency'},
+                                    {text: pkg.distributorPrice ? formatNumber(pkg.distributorPrice) : '-', className: 'currency'},
+                                    formatNumber(data.inventory.filter(i => i.packageId === pkg.id).reduce((sum, i) => sum + i.quantity, 0))
+                                ]) : null;
+                            if (row) fragment.appendChild(row);
+                        });
+                        recentPackages.innerHTML = '';
+                        recentPackages.appendChild(fragment);
+                    });
+                } else {
+                    // الطريقة التقليدية مع تحسينات
+                    const fragment = document.createDocumentFragment();
+                    const packagesToShow = data.packages.slice(-3).reverse();
+                    packagesToShow.forEach(pkg => {
+                        const row = document.createElement('tr');
+                        const cells = [
+                            pkg.name,
+                            pkg.retailPrice ? formatNumber(pkg.retailPrice) : '-',
+                            pkg.wholesalePrice ? formatNumber(pkg.wholesalePrice) : '-',
+                            pkg.distributorPrice ? formatNumber(pkg.distributorPrice) : '-',
+                            formatNumber(data.inventory.filter(i => i.packageId === pkg.id).reduce((sum, i) => sum + i.quantity, 0))
+                        ];
+                        cells.forEach((content, index) => {
+                            const td = document.createElement('td');
+                            td.textContent = content;
+                            if (index >= 1 && index <= 3) td.className = 'currency';
+                            row.appendChild(td);
+                        });
+                        fragment.appendChild(row);
+                    });
+                    recentPackages.innerHTML = '';
+                    recentPackages.appendChild(fragment);
+                }
             }
             
             // تحديث أحدث المحلات (غير مستخدم إذا لم توجد العناصر)
@@ -3973,6 +4003,7 @@
     <script src="./js/security.js"></script>
     <script src="./js/encryption.js"></script>
     <script src="./js/safeDOM.js"></script>
+    <script src="./js/domOptimizer.js"></script>
     <script src="./js/dataValidator.js"></script>
     <script src="./js/quickFixes.js"></script>
     <script src="./js/utils.js"></script>
@@ -3989,6 +4020,7 @@
     <script src="./js/backupManager.js"></script>
     <script src="./js/expensesTypes.js"></script>
     <script src="./js/trash.js"></script>
+    <script src="./js/performanceHelpers.js"></script>
 
 
 

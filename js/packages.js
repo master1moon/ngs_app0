@@ -3,6 +3,38 @@ function renderPackagesTable() {
   const table = document.getElementById('packagesTable');
   if (!table) return; 
   
+  // استخدام التحسينات إذا كانت متاحة
+  if (window.$dom && window.$dom.table && data.packages.length > 50) {
+    window.$dom.table(data.packages, {
+      containerId: 'packagesTable',
+      headers: ['اسم الباقة', 'سعر القطاعي', 'سعر الجملة', 'سعر الموزع', 'التاريخ', 'إجراءات'],
+      rowRenderer: (pkg) => {
+        return window.$safe ? window.$safe.row([
+          pkg.name,
+          {text: pkg.retailPrice ? formatNumber(pkg.retailPrice) : '-', className: 'currency'},
+          {text: pkg.wholesalePrice ? formatNumber(pkg.wholesalePrice) : '-', className: 'currency'},
+          {text: pkg.distributorPrice ? formatNumber(pkg.distributorPrice) : '-', className: 'currency'},
+          pkg.createdAt
+        ], [
+          {
+            className: 'btn btn-sm btn-warning edit-package',
+            icon: 'fas fa-edit',
+            dataId: pkg.id,
+            onClick: () => editPackage(pkg.id)
+          },
+          {
+            className: 'btn btn-sm btn-danger delete-package',
+            icon: 'fas fa-trash',
+            dataId: pkg.id,
+            onClick: () => deletePackage(pkg.id)
+          }
+        ]) : null;
+      },
+      enableVirtualScroll: true
+    });
+    return;
+  }
+  
   // إفراغ الجدول بأمان
   if (window.$safe && window.$safe.clear) {
     window.$safe.clear(table);

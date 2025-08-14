@@ -10,6 +10,7 @@ const CRITICAL_ASSETS = [
   './js/security.js',
   './js/encryption.js',
   './js/safeDOM.js',
+  './js/domOptimizer.js',
   './js/dataValidator.js',
   './js/utils.js',
   './js/reports.js',
@@ -23,6 +24,7 @@ const CRITICAL_ASSETS = [
   './js/backup.js',
   './js/backupManager.js',
   './js/trash.js',
+  './js/performanceHelpers.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'
