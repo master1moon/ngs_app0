@@ -3,15 +3,42 @@ let githubSettings = { token: '', gistId: '', fileName: 'network-cards.json', au
 
 function loadGithubSettings() {
     try {
+        // محاولة تحميل الإعدادات المشفرة
+        if (window.DataEncryption && window.DataEncryption.loadEncrypted) {
+            const encrypted = window.DataEncryption.loadEncrypted('githubSettings');
+            if (encrypted) {
+                githubSettings = Object.assign(githubSettings, encrypted);
+                return;
+            }
+        }
+        
+        // التحميل العادي كـ fallback
         const saved = localStorage.getItem('githubSettings');
         if (saved) {
             const parsed = JSON.parse(saved);
             githubSettings = Object.assign(githubSettings, parsed);
+            
+            // ترحيل إلى التشفير
+            if (window.DataEncryption && window.DataEncryption.saveEncrypted && parsed.token) {
+                window.DataEncryption.saveEncrypted('githubSettings', parsed);
+            }
         }
     } catch (e) { /* ignore */ }
 }
 
 function saveGithubSettings() {
+    // حفظ مشفر إذا كان متاحاً
+    if (window.DataEncryption && window.DataEncryption.saveEncrypted) {
+        const saved = window.DataEncryption.saveEncrypted('githubSettings', githubSettings);
+        if (saved) {
+            if (typeof showNotification === 'function') {
+                showNotification('تم حفظ إعدادات جيت هب بشكل آمن', 'success');
+            }
+            return;
+        }
+    }
+    
+    // الحفظ العادي كـ fallback
     localStorage.setItem('githubSettings', JSON.stringify(githubSettings));
     if (typeof showNotification === 'function') {
         showNotification('تم حفظ إعدادات جيت هب', 'success');

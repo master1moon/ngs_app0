@@ -8,6 +8,7 @@ const CRITICAL_ASSETS = [
   './fonts/Amiri-Regular.woff2',
   './app.js',
   './js/security.js',
+  './js/encryption.js',
   './js/safeDOM.js',
   './js/dataValidator.js',
   './js/utils.js',

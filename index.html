@@ -1556,9 +1556,36 @@
         // استرجاع البيانات من localStorage إن وجدت
         function loadData() {
             try {
-                const savedData = localStorage.getItem('networkCardsData');
-                if (savedData) {
-                    const parsedData = JSON.parse(savedData);
+                // محاولة تحميل البيانات المشفرة أولاً
+                let parsedData = null;
+                
+                if (window.DataEncryption && window.DataEncryption.loadEncrypted) {
+                    // محاولة تحميل البيانات المشفرة
+                    parsedData = window.DataEncryption.loadEncrypted('networkCardsData');
+                }
+                
+                // إذا فشل التحميل المشفر، حاول التحميل العادي
+                if (!parsedData) {
+                    const savedData = localStorage.getItem('networkCardsData');
+                    if (savedData) {
+                        try {
+                            // التحقق من وجود توقيع (بيانات مشفرة)
+                            const testParse = JSON.parse(savedData);
+                            if (testParse.signature && testParse.data) {
+                                // بيانات مشفرة لكن فشل فك التشفير
+                                console.warn('البيانات مشفرة لكن فشل فك التشفير');
+                                parsedData = testParse.data; // استخدم البيانات المشفرة كما هي
+                            } else {
+                                // بيانات غير مشفرة
+                                parsedData = testParse;
+                            }
+                        } catch (e) {
+                            console.error('خطأ في تحليل البيانات:', e);
+                        }
+                    }
+                }
+                
+                if (parsedData) {
                     // التحقق من صحة البيانات
                     if (typeof parsedData === 'object' && parsedData !== null) {
                         // التأكد من وجود جميع الخصائص المطلوبة
@@ -1589,7 +1616,8 @@
                     stores: [],
                     expenses: [],
                     sales: [],
-                    payments: []
+                    payments: [],
+                    trash: []
                 };
             }
             
@@ -1626,7 +1654,17 @@
                 // تحديث الكائن الأصلي بالبيانات الصحيحة
                 data = validData;
                 
-                localStorage.setItem('networkCardsData', JSON.stringify(validData));
+                // حفظ البيانات بالتشفير إذا كان متاحاً
+                let saved = false;
+                if (window.DataEncryption && window.DataEncryption.saveEncrypted) {
+                    saved = window.DataEncryption.saveEncrypted('networkCardsData', validData);
+                }
+                
+                // إذا فشل التشفير، احفظ بالطريقة العادية
+                if (!saved) {
+                    localStorage.setItem('networkCardsData', JSON.stringify(validData));
+                }
+                
                 showNotification('تم حفظ البيانات بنجاح', 'success');
                 
                 // المزامنة مع GitHub إذا كانت مفعلة
@@ -3933,6 +3971,7 @@
     </script>
 
     <script src="./js/security.js"></script>
+    <script src="./js/encryption.js"></script>
     <script src="./js/safeDOM.js"></script>
     <script src="./js/dataValidator.js"></script>
     <script src="./js/quickFixes.js"></script>
