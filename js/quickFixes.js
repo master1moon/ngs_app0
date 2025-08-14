@@ -12,7 +12,8 @@
                 stores: [],
                 expenses: [],
                 sales: [],
-                payments: []
+                payments: [],
+                trash: []
             };
             console.log('تم إنشاء بنية بيانات افتراضية');
         }
@@ -59,7 +60,8 @@
                     stores: [],
                     expenses: [],
                     sales: [],
-                    payments: []
+                    payments: [],
+                    trash: []
                 }));
             }
         }

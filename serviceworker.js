@@ -19,6 +19,7 @@ const CRITICAL_ASSETS = [
   './js/storage.js',
   './js/backup.js',
   './js/backupManager.js',
+  './js/trash.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'

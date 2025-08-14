@@ -1,0 +1,278 @@
+// إدارة سلة المحذوفات
+(function() {
+    'use strict';
+
+    // التأكد من وجود مصفوفة المحذوفات في البيانات
+    function ensureTrashExists() {
+        if (typeof data !== 'undefined' && data && !data.trash) {
+            data.trash = [];
+        } else if (typeof window.data !== 'undefined' && window.data && !window.data.trash) {
+            window.data.trash = [];
+        }
+    }
+
+    // إضافة عنصر إلى سلة المحذوفات
+    async function addToTrash(section, item) {
+        try {
+            ensureTrashExists();
+            
+            const trashItem = {
+                id: 'trash_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                section: section,
+                deletedAt: new Date().toISOString(),
+                item: JSON.parse(JSON.stringify(item)) // نسخة عميقة
+            };
+            
+            if (data && data.trash) {
+                data.trash.push(trashItem);
+            } else if (window.data && window.data.trash) {
+                window.data.trash.push(trashItem);
+            }
+            
+            // حفظ البيانات
+            if (typeof saveData === 'function') {
+                saveData();
+            }
+            
+            // تحديث عرض سلة المحذوفات إذا كانت مفتوحة
+            if (typeof renderTrashTable === 'function') {
+                renderTrashTable();
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('خطأ في إضافة العنصر إلى سلة المحذوفات:', error);
+            return false;
+        }
+    }
+
+    // عرض جدول المحذوفات
+    function renderTrashTable() {
+        const table = document.getElementById('trashTable');
+        if (!table) return;
+        
+        ensureTrashExists();
+        
+        const trash = (data && data.trash) || (window.data && window.data.trash) || [];
+        const filterSection = document.getElementById('trashFilterSection')?.value || 'all';
+        const searchTerm = (document.getElementById('trashSearch')?.value || '').toLowerCase();
+        const sortBy = document.getElementById('trashSortBy')?.value || 'deletedAt_desc';
+        
+        // فلترة
+        let filtered = trash.filter(item => {
+            if (filterSection !== 'all' && item.section !== filterSection) return false;
+            
+            if (searchTerm) {
+                const searchableText = JSON.stringify(item.item).toLowerCase();
+                if (!searchableText.includes(searchTerm)) return false;
+            }
+            
+            return true;
+        });
+        
+        // ترتيب
+        filtered.sort((a, b) => {
+            switch (sortBy) {
+                case 'deletedAt_asc':
+                    return new Date(a.deletedAt) - new Date(b.deletedAt);
+                case 'deletedAt_desc':
+                    return new Date(b.deletedAt) - new Date(a.deletedAt);
+                case 'section_asc':
+                    return a.section.localeCompare(b.section);
+                case 'section_desc':
+                    return b.section.localeCompare(a.section);
+                default:
+                    return 0;
+            }
+        });
+        
+        // عرض الجدول
+        table.innerHTML = '';
+        
+        if (filtered.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="4" class="text-center">لا توجد عناصر محذوفة</td>';
+            table.appendChild(row);
+            return;
+        }
+        
+        filtered.forEach(trashItem => {
+            const row = document.createElement('tr');
+            const sectionName = getSectionName(trashItem.section);
+            const itemDesc = getItemDescription(trashItem.section, trashItem.item);
+            const deletedDate = new Date(trashItem.deletedAt).toLocaleString('ar-SA');
+            
+            row.innerHTML = `
+                <td>${sectionName}</td>
+                <td>${itemDesc}</td>
+                <td>${deletedDate}</td>
+                <td class="action-buttons">
+                    <button class="btn btn-sm btn-success restore-item" data-id="${trashItem.id}">
+                        <i class="fas fa-undo"></i> استعادة
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-forever" data-id="${trashItem.id}">
+                        <i class="fas fa-trash"></i> حذف نهائياً
+                    </button>
+                </td>
+            `;
+            
+            table.appendChild(row);
+        });
+        
+        // إضافة معالجات الأحداث
+        document.querySelectorAll('.restore-item').forEach(btn => {
+            btn.addEventListener('click', () => restoreItem(btn.dataset.id));
+        });
+        
+        document.querySelectorAll('.delete-forever').forEach(btn => {
+            btn.addEventListener('click', () => deleteForever(btn.dataset.id));
+        });
+    }
+
+    // الحصول على اسم القسم
+    function getSectionName(section) {
+        const sectionNames = {
+            'packages': 'الباقات',
+            'inventory': 'المخزون',
+            'stores': 'المحلات',
+            'expenses': 'المصروفات',
+            'sales': 'المبيعات',
+            'payments': 'التسديدات'
+        };
+        return sectionNames[section] || section;
+    }
+
+    // الحصول على وصف العنصر
+    function getItemDescription(section, item) {
+        switch (section) {
+            case 'packages':
+                return `${item.name || 'باقة'} - ${item.retailPrice || 0}`;
+            case 'inventory':
+                return `كمية: ${item.quantity || 0}`;
+            case 'stores':
+                return item.name || 'محل';
+            case 'expenses':
+                return `${item.type || 'مصروف'} - ${item.amount || 0}`;
+            case 'sales':
+                return `بيع - ${item.total || 0}`;
+            case 'payments':
+                return `تسديد - ${item.amount || 0}`;
+            default:
+                return JSON.stringify(item).substr(0, 50) + '...';
+        }
+    }
+
+    // استعادة عنصر من سلة المحذوفات
+    function restoreItem(trashId) {
+        if (!confirm('هل تريد استعادة هذا العنصر؟')) return;
+        
+        ensureTrashExists();
+        const trash = (data && data.trash) || (window.data && window.data.trash) || [];
+        const trashItem = trash.find(t => t.id === trashId);
+        
+        if (!trashItem) {
+            showNotification('العنصر غير موجود في سلة المحذوفات', 'error');
+            return;
+        }
+        
+        // استعادة العنصر إلى قسمه الأصلي
+        const targetArray = data[trashItem.section];
+        if (Array.isArray(targetArray)) {
+            targetArray.push(trashItem.item);
+            
+            // حذف من سلة المحذوفات
+            const index = trash.findIndex(t => t.id === trashId);
+            if (index > -1) {
+                trash.splice(index, 1);
+            }
+            
+            saveData();
+            renderTrashTable();
+            updateAllSections();
+            
+            showNotification('تم استعادة العنصر بنجاح', 'success');
+        } else {
+            showNotification('لا يمكن استعادة العنصر - القسم غير موجود', 'error');
+        }
+    }
+
+    // حذف عنصر نهائياً
+    function deleteForever(trashId) {
+        if (!confirm('هل أنت متأكد من الحذف النهائي؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+        
+        ensureTrashExists();
+        const trash = (data && data.trash) || (window.data && window.data.trash) || [];
+        const index = trash.findIndex(t => t.id === trashId);
+        
+        if (index > -1) {
+            trash.splice(index, 1);
+            saveData();
+            renderTrashTable();
+            showNotification('تم الحذف النهائي', 'success');
+        }
+    }
+
+    // تحديث جميع الأقسام
+    function updateAllSections() {
+        // تحديث الجداول حسب القسم النشط
+        if (typeof renderPackagesTable === 'function') renderPackagesTable();
+        if (typeof renderInventoryTable === 'function') renderInventoryTable();
+        if (typeof renderStoresList === 'function') renderStoresList();
+        if (typeof renderExpensesTable === 'function') renderExpensesTable();
+        if (typeof updateDashboard === 'function') updateDashboard();
+        if (typeof updateProfitReport === 'function') updateProfitReport();
+        if (typeof generateDebtReport === 'function') generateDebtReport();
+    }
+
+    // تفريغ سلة المحذوفات
+    function emptyTrash() {
+        if (!confirm('هل أنت متأكد من تفريغ سلة المحذوفات بالكامل؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+        
+        ensureTrashExists();
+        if (data && data.trash) {
+            data.trash = [];
+        } else if (window.data && window.data.trash) {
+            window.data.trash = [];
+        }
+        
+        saveData();
+        renderTrashTable();
+        showNotification('تم تفريغ سلة المحذوفات', 'success');
+    }
+
+    // تصدير الدوال للنطاق العام
+    if (typeof window !== 'undefined') {
+        window.addToTrash = addToTrash;
+        window.renderTrashTable = renderTrashTable;
+        window.restoreItem = restoreItem;
+        window.deleteForever = deleteForever;
+        window.emptyTrash = emptyTrash;
+        window.ensureTrashExists = ensureTrashExists;
+    }
+
+    // تهيئة عند التحميل
+    document.addEventListener('DOMContentLoaded', function() {
+        ensureTrashExists();
+        
+        // معالجات أحداث الفلترة والبحث
+        const filterSection = document.getElementById('trashFilterSection');
+        const searchInput = document.getElementById('trashSearch');
+        const sortBy = document.getElementById('trashSortBy');
+        
+        if (filterSection) filterSection.addEventListener('change', renderTrashTable);
+        if (searchInput) searchInput.addEventListener('input', renderTrashTable);
+        if (sortBy) sortBy.addEventListener('change', renderTrashTable);
+        
+        // زر تفريغ سلة المحذوفات
+        const emptyBtn = document.createElement('button');
+        emptyBtn.className = 'btn btn-danger btn-sm ms-2';
+        emptyBtn.innerHTML = '<i class="fas fa-trash-alt"></i> تفريغ السلة';
+        emptyBtn.onclick = emptyTrash;
+        
+        const trashSection = document.querySelector('#trash .section-title');
+        if (trashSection) {
+            trashSection.appendChild(emptyBtn);
+        }
+    });
+
+})();

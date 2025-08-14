@@ -1425,7 +1425,8 @@
             stores: [],
             expenses: [],
             sales: [],
-            payments: []
+            payments: [],
+            trash: []
         };
         
         // تحويل أي أرقام عربية/فارسية إلى إنجليزية
@@ -1568,7 +1569,8 @@
                             stores: Array.isArray(parsedData.stores) ? parsedData.stores : [],
                             expenses: Array.isArray(parsedData.expenses) ? parsedData.expenses : [],
                             sales: Array.isArray(parsedData.sales) ? parsedData.sales : [],
-                            payments: Array.isArray(parsedData.payments) ? parsedData.payments : []
+                            payments: Array.isArray(parsedData.payments) ? parsedData.payments : [],
+                            trash: Array.isArray(parsedData.trash) ? parsedData.trash : []
                         };
                         showNotification('تم تحميل البيانات بنجاح', 'success');
                     } else {
@@ -1618,7 +1620,8 @@
                     stores: Array.isArray(data.stores) ? data.stores : [],
                     expenses: Array.isArray(data.expenses) ? data.expenses : [],
                     sales: Array.isArray(data.sales) ? data.sales : [],
-                    payments: Array.isArray(data.payments) ? data.payments : []
+                    payments: Array.isArray(data.payments) ? data.payments : [],
+                    trash: Array.isArray(data.trash) ? data.trash : []
                 };
                 
                 // تحديث الكائن الأصلي بالبيانات الصحيحة
@@ -3556,7 +3559,8 @@
                                 stores: toArraySafe(importedData.stores),
                                 expenses: toArraySafe(importedData.expenses),
                                 sales: toArraySafe(importedData.sales),
-                                payments: toArraySafe(importedData.payments)
+                                payments: toArraySafe(importedData.payments),
+                                trash: toArraySafe(importedData.trash)
                             };
                             console.log('تم استبدال البيانات:', data);
                         } else {
@@ -3567,6 +3571,7 @@
                             data.expenses = mergeUniqueById(data.expenses, importedData.expenses);
                             data.sales = mergeUniqueById(data.sales, importedData.sales);
                             data.payments = mergeUniqueById(data.payments, importedData.payments);
+                            data.trash = mergeUniqueById(data.trash, importedData.trash);
                         }
                     } else {
                         // التعامل مع استيراد نوع واحد من البيانات
@@ -3943,6 +3948,7 @@
     <script src="./js/backup.js"></script>
     <script src="./js/backupManager.js"></script>
     <script src="./js/expensesTypes.js"></script>
+    <script src="./js/trash.js"></script>
 
 
 

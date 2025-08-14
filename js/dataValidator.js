@@ -9,7 +9,8 @@
         stores: [],
         expenses: [],
         sales: [],
-        payments: []
+        payments: [],
+        trash: []
     };
 
     // التحقق من صحة كائن البيانات
