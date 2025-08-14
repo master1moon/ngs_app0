@@ -28,7 +28,13 @@ function updateDashboardReports() {
 }
 
 // حافظ على التوافق إن وُجدت استدعاءات قديمة
-if (typeof window !== 'undefined') { window.updateDashboard = window.updateDashboard || updateDashboardReports; }
+if (typeof window !== 'undefined') { 
+  window.updateDashboard = window.updateDashboard || updateDashboardReports;
+  // تصدير الدوال للنطاق العام
+  window.exportStoreData = exportStoreData;
+  window.getPriceTypeName = getPriceTypeName;
+  window.buildStoreReportHTML = buildStoreReportHTML;
+}
 
 function getPriceTypeName(priceType) {
   switch (priceType) {
@@ -44,6 +50,11 @@ function isStoreMatch(item) {
   const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
   if (storeFilter === 'all') return true;
   return String(item.storeId || '') === String(storeFilter);
+}
+
+// تصدير الدالة للنطاق العام
+if (typeof window !== 'undefined') {
+  window.isStoreMatch = isStoreMatch;
 }
 
 function updateProfitReport() {
@@ -374,14 +385,20 @@ function buildExpensesReportHTML(expensesRows, periodText) {
 }
 
 async function exportStoreData(storeId, format) {
+  // التأكد من وجود البيانات
+  if (!data || typeof data !== 'object') {
+    console.warn('البيانات غير متوفرة في exportStoreData');
+    showNotification('البيانات غير متوفرة', 'error');
+    return;
+  }
   const store = data.stores.find(s => (s.id + '') === (storeId + ''));
   if (!store) { showNotification('تعذر تحديد المحل للتصدير', 'error'); return; }
   var fromInput = document.getElementById('storeFromDate');
   var toInput = document.getElementById('storeToDate');
   const fromDate = (fromInput && fromInput.value) || '';
   const toDate = (toInput && toInput.value) || '';
-  const salesAll = data.sales.filter(s => (s.storeId + '') === (storeId + ''));
-  const paymentsAll = data.payments.filter(p => (p.storeId + '') === (storeId + ''));
+  const salesAll = (data.sales || []).filter(s => (s.storeId + '') === (storeId + ''));
+  const paymentsAll = (data.payments || []).filter(p => (p.storeId + '') === (storeId + ''));
   function parseDate(d) {
     if (!d) return null; const m = moment(d, [moment.ISO_8601, 'YYYY-MM-DD', 'YYYY-M-D', 'DD/MM/YYYY', 'D/M/YYYY'], true); if (m.isValid()) return m; const n = new Date(d); return isNaN(n.getTime()) ? null : moment(n);
   }
@@ -397,7 +414,7 @@ async function exportStoreData(storeId, format) {
   const totalSales = storeSales.reduce((sum, s) => sum + (s.total || 0), 0);
   const totalPayments = storePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const remaining = totalSales - totalPayments;
-  const packageIdToName = new Map(data.packages.map(p => [p.id + '', p.name]));
+  const packageIdToName = new Map((data.packages || []).map(p => [p.id + '', p.name]));
   const mappedSalesForExport = storeSales.map(s => ({
     التاريخ: formatDateEn(s.date),
     التفاصيل: s.reason || (s.packageId ? 'بيع باقة' : 'بيع مخصص'),

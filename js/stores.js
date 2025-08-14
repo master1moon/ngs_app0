@@ -140,44 +140,7 @@ function saveStore() {
   const modal = bootstrap.Modal.getInstance(document.getElementById('storeModal')); modal.hide();
 }
 
-function exportStoreData(storeId, format) {
-  const store = data.stores.find(s => (s.id + '') === (storeId + ''));
-  if (!store) { showNotification('تعذر تحديد المحل للتصدير', 'error'); return; }
-  var fromInput = document.getElementById('storeFromDate');
-  var toInput = document.getElementById('storeToDate');
-  const fromDate = formatDateEn((fromInput && fromInput.value) || '');
-  const toDate = formatDateEn((toInput && toInput.value) || '');
-  const salesAll = data.sales.filter(s => (s.storeId + '') === (storeId + ''));
-  const paymentsAll = data.payments.filter(p => (p.storeId + '') === (storeId + ''));
-  function parseDate(d) {
-    if (!d) return null; const m = moment(d, [moment.ISO_8601, 'YYYY-MM-DD', 'YYYY-M-D', 'DD/MM/YYYY', 'D/M/YYYY'], true); if (m.isValid()) return m; const n = new Date(d); return isNaN(n.getTime()) ? null : moment(n);
-  }
-  function inRange(d) {
-    const nd = formatDateEn(d);
-    if (!fromDate && !toDate) return true; const md = parseDate(nd); if (!md) return true;
-    if (fromDate) { const mf = parseDate(fromDate); if (mf && md.isBefore(mf, 'day')) return false; }
-    if (toDate) { const mt = parseDate(toDate); if (mt && md.isAfter(mt, 'day')) return false; }
-    return true;
-  }
-  let storeSales = salesAll.filter(s => inRange(s.date));
-  let storePayments = paymentsAll.filter(p => inRange(p.date));
-  if ((fromDate || toDate) && storeSales.length === 0 && storePayments.length === 0) { storeSales = salesAll.slice(); storePayments = paymentsAll.slice(); }
-  const totalSales = storeSales.reduce((sum, s) => sum + (s.total || 0), 0);
-  const totalPayments = storePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-  const remaining = totalSales - totalPayments;
-  const packageIdToName = new Map(data.packages.map(p => [p.id + '', p.name]));
-  const mappedSalesForExport = storeSales.map(s => ({
-    التاريخ: formatDateEn(s.date),
-    التفاصيل: s.reason || (s.packageId ? 'بيع باقة' : 'بيع مخصص'),
-    الباقة: s.packageId && s.packageId !== 'custom' ? (packageIdToName.get(s.packageId + '') || 'غير معروف') : 'مخصص',
-    الكمية_أو_المبلغ: s.packageId === 'custom' ? s.amount : s.quantity,
-    الإجمالي: s.total
-  }));
-  const mappedPaymentsForExport = storePayments.map(p => ({ التاريخ: formatDateEn(p.date), المبلغ: p.amount, ملاحظات: p.notes || '' }));
-  const filename = `تفاصيل_${store.name.replace(/\s+/g, '_')}_${moment().format('YYYYMMDD')}`;
-  const periodText = `${fromDate || 'من البداية'} إلى ${toDate || 'حتى الآن'}`;
-  // ... existing code ...
-}
+// تم نقل دالة exportStoreData إلى reports.js لتجنب التكرار
 
 // اختصارات سريعة لانتقاء المحل قبل البيع/التسديد
 (function () {
