@@ -967,13 +967,7 @@
                         </button>
                     </div>
 
-                    <!-- تم أرشفة التقارير التفصيلية وتم إزالتها مؤقتًا لتخفيف الصفحة -->
-
-                        <!-- تمت إزالة تقارير المصروفات التفصيلية (مؤرشفة) -->
-
-                        <!-- تمت إزالة تقارير المبيعات التفصيلية (مؤرشفة) -->
-
-                        <!-- تمت إزالة تقارير الديون التفصيلية (مؤرشفة) -->
+                    <!-- تم أرشفة التقارير التفصيلية -->
                     </div>
                 </div>
             </div>
@@ -981,7 +975,12 @@
             <!-- قسم المحذوفات -->
             <div id="trash" class="section" style="display:none;">
                 <div class="section-content">
-                    <h4 class="section-title">سلة المحذوفات</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="section-title mb-0">سلة المحذوفات</h4>
+                        <button class="btn btn-danger btn-sm" onclick="if(typeof emptyTrash === 'function') emptyTrash()">
+                            <i class="fas fa-trash-alt"></i> تفريغ السلة
+                        </button>
+                    </div>
                     <div class="row g-2 align-items-center mb-3">
                         <div class="col-12 col-md-auto d-flex gap-2 align-items-center">
                             <label for="trashFilterSection" class="mb-0">القسم:</label>

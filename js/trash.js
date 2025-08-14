@@ -100,7 +100,10 @@
             const row = document.createElement('tr');
             const sectionName = getSectionName(trashItem.section);
             const itemDesc = getItemDescription(trashItem.section, trashItem.item);
-            const deletedDate = new Date(trashItem.deletedAt).toLocaleString('ar-SA');
+            // استخدام التاريخ الميلادي مثل باقي التطبيق
+            const deletedDate = typeof formatDateEn === 'function' ? 
+                formatDateEn(trashItem.deletedAt) : 
+                new Date(trashItem.deletedAt).toLocaleDateString('en-US');
             
             row.innerHTML = `
                 <td>${sectionName}</td>
@@ -263,16 +266,7 @@
         if (searchInput) searchInput.addEventListener('input', renderTrashTable);
         if (sortBy) sortBy.addEventListener('change', renderTrashTable);
         
-        // زر تفريغ سلة المحذوفات
-        const emptyBtn = document.createElement('button');
-        emptyBtn.className = 'btn btn-danger btn-sm ms-2';
-        emptyBtn.innerHTML = '<i class="fas fa-trash-alt"></i> تفريغ السلة';
-        emptyBtn.onclick = emptyTrash;
-        
-        const trashSection = document.querySelector('#trash .section-title');
-        if (trashSection) {
-            trashSection.appendChild(emptyBtn);
-        }
+        // الزر موجود الآن في HTML مباشرة
     });
 
 })();
