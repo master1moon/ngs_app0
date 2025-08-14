@@ -39,17 +39,30 @@ function getPriceTypeName(priceType) {
   }
 }
 
+// دالة للتحقق من تطابق المحل مع الفلتر
+function isStoreMatch(item) {
+  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
+  if (storeFilter === 'all') return true;
+  return String(item.storeId || '') === String(storeFilter);
+}
+
 function updateProfitReport() {
+  // التأكد من وجود البيانات
+  if (!data || typeof data !== 'object') {
+    console.warn('البيانات غير متوفرة في updateProfitReport');
+    return;
+  }
+  
   const { fromDate, toDate } = getPeriodRange();
-  const filteredSales = data.sales.filter(s => inPeriod(s.date, fromDate, toDate) && isStoreMatch(s));
+  const filteredSales = (data.sales || []).filter(s => inPeriod(s.date, fromDate, toDate) && isStoreMatch(s));
   const totalSales = filteredSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
   const totalSalesEl = document.getElementById('totalSalesReport');
   if (totalSalesEl) totalSalesEl.textContent = formatNumber(totalSales);
-  const filteredPayments = data.payments.filter(p => inPeriod(p.date, fromDate, toDate) && isStoreMatch(p));
+  const filteredPayments = (data.payments || []).filter(p => inPeriod(p.date, fromDate, toDate) && isStoreMatch(p));
   const totalPaymentsSum = filteredPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
   const totalPaymentsEl = document.getElementById('totalPaymentsReport');
   if (totalPaymentsEl) totalPaymentsEl.textContent = formatNumber(totalPaymentsSum);
-  const filteredExpenses = data.expenses.filter(e => inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
+  const filteredExpenses = (data.expenses || []).filter(e => inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
   const totalExpensesEl = document.getElementById('totalExpensesReport');
   if (totalExpensesEl) totalExpensesEl.textContent = formatNumber(totalExpenses);
@@ -157,9 +170,15 @@ function buildPartnerReportHTML(periodText, partnersCount, paysList, expsList, t
 })();
 
 function exportPartnerReport() {
+  // التأكد من وجود البيانات
+  if (!data || typeof data !== 'object') {
+    console.warn('البيانات غير متوفرة في exportPartnerReport');
+    return;
+  }
+  
   const { fromDate, toDate } = getPeriodRange();
-  const sales = data.sales.filter(s=> inPeriod(s.date, fromDate, toDate) && isStoreMatch(s));
-  const expenses = data.expenses.filter(e=> inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
+  const sales = (data.sales || []).filter(s=> inPeriod(s.date, fromDate, toDate) && isStoreMatch(s));
+  const expenses = (data.expenses || []).filter(e=> inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
   const totalSales = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
   const netProfit = totalSales - totalExpenses;
@@ -561,6 +580,12 @@ function renderQuickSummaries(){
   const paymentsCanvas = document.getElementById('chartPayments');
   const expensesCanvas = document.getElementById('chartExpenses');
   if (!salesCanvas || !paymentsCanvas || !expensesCanvas) return;
+  
+  // التأكد من وجود البيانات
+  if (!data || typeof data !== 'object') {
+    console.warn('البيانات غير متوفرة في renderQuickSummaries');
+    return;
+  }
   const { fromDate, toDate } = getPeriodRange();
   const end = moment(toDate);
   let start = moment(fromDate);
@@ -577,9 +602,9 @@ function renderQuickSummaries(){
     }
     return days.map(d=> map.get(d)||0);
   }
-  const sales = data.sales.filter(s=> inPeriod(s.date, days[0], days[days.length-1]) && isStoreMatch(s));
-  const payments = data.payments.filter(p=> inPeriod(p.date, days[0], days[days.length-1]) && isStoreMatch(p));
-  const expenses = data.expenses.filter(e=> inPeriod(e.date, days[0], days[days.length-1]) && isStoreMatch(e));
+  const sales = (data.sales || []).filter(s=> inPeriod(s.date, days[0], days[days.length-1]) && isStoreMatch(s));
+  const payments = (data.payments || []).filter(p=> inPeriod(p.date, days[0], days[days.length-1]) && isStoreMatch(p));
+  const expenses = (data.expenses || []).filter(e=> inPeriod(e.date, days[0], days[days.length-1]) && isStoreMatch(e));
   const salesSeries = aggregateDaily(sales, s=>s.date, s=>s.total||0);
   const paymentsSeries = aggregateDaily(payments, p=>p.date, p=>p.amount||0);
   const expensesSeries = aggregateDaily(expenses, e=>e.date, e=>e.amount||0);
