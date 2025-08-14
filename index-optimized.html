@@ -129,25 +129,5 @@
     
     <!-- Main Application -->
     <script src="./js/main.js"></script>
-    <script src="./js/components.js"></script>
-    
-    <script>
-        // Lazy load components
-        document.addEventListener('DOMContentLoaded', async function() {
-            // Load sidebar
-            const sidebar = await loadComponent('sidebar');
-            document.getElementById('sidebar').innerHTML = sidebar;
-            
-            // Load mobile drawer
-            const drawer = await loadComponent('mobile-drawer');
-            document.getElementById('mobileDrawer').innerHTML = drawer;
-            
-            // Load initial section
-            await loadSection('dashboard');
-            
-            // Load modals on demand
-            loadModalsOnDemand();
-        });
-    </script>
 </body>
 </html>

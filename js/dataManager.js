@@ -349,8 +349,10 @@ function exportToExcel(data, sheetName, filename) {
 }
 
 // تصدير الدوال
-window.loadData = loadData;
-window.saveData = saveData;
-window.importData = importData;
-window.exportData = exportData;
-window.updateAllInterfaces = updateAllInterfaces;
+if (typeof window !== 'undefined') {
+    window.loadData = loadData;
+    window.saveData = saveData;
+    window.importData = importData;
+    window.exportData = exportData;
+    window.updateAllInterfaces = updateAllInterfaces;
+}

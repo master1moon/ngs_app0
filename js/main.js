@@ -22,12 +22,15 @@ function updateCurrentDate() {
     const currentDateEl = document.getElementById('currentDate');
     const currentMonthEl = document.getElementById('currentMonth');
     
+    // التحقق من وجود toEnglishDigits
+    const toEnglish = typeof toEnglishDigits === 'function' ? toEnglishDigits : (str) => str;
+    
     if (currentDateEl) {
-        currentDateEl.textContent = toEnglishDigits(moment().format('YYYY-MM-DD'));
+        currentDateEl.textContent = toEnglish(moment().format('YYYY-MM-DD'));
     }
     
     if (currentMonthEl) {
-        currentMonthEl.textContent = toEnglishDigits(moment().format('MMMM'));
+        currentMonthEl.textContent = toEnglish(moment().format('MMMM'));
     }
 }
 

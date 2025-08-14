@@ -1,5 +1,71 @@
 // نسخة محسّنة من التقارير - بدون حلقات متداخلة
 
+// التحقق من وجود الدوال المطلوبة
+if (typeof inPeriod === 'undefined') {
+    window.inPeriod = function(date, from, to) {
+        if (!date) return false;
+        return date >= from && date <= to;
+    };
+}
+
+if (typeof formatNumber === 'undefined') {
+    window.formatNumber = function(num) {
+        if (num === null || num === undefined) return '';
+        const n = Number(num) || 0;
+        return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    };
+}
+
+if (typeof formatDateEn === 'undefined') {
+    window.formatDateEn = function(date) {
+        if (!date) return '';
+        return new Date(date).toLocaleDateString('en-US');
+    };
+}
+
+if (typeof getPeriodRange === 'undefined') {
+    window.getPeriodRange = function() {
+        const today = moment().format('YYYY-MM-DD');
+        return { fromDate: moment().subtract(30, 'days').format('YYYY-MM-DD'), toDate: today };
+    };
+}
+
+if (typeof getPartnersPeriodRange === 'undefined') {
+    window.getPartnersPeriodRange = function() {
+        return getPeriodRange();
+    };
+}
+
+if (typeof getPartnersCount === 'undefined') {
+    window.getPartnersCount = function() {
+        return 2; // افتراضي
+    };
+}
+
+if (typeof getPriceTypeName === 'undefined') {
+    window.getPriceTypeName = function(priceType) {
+        switch (priceType) {
+            case 'retail': return 'تجزئة';
+            case 'wholesale': return 'جملة';
+            case 'distributor': return 'موزعين';
+            default: return 'غير معروف';
+        }
+    };
+}
+
+if (typeof buildPartnerReportHTML === 'undefined') {
+    window.buildPartnerReportHTML = function(data) {
+        return `
+            <div class="partner-report-card">
+                <h5>تقرير الشركاء</h5>
+                <p>صافي الربح: ${formatNumber(data.netProfit)}</p>
+                <p>عدد الشركاء: ${data.partners}</p>
+                <p>نصيب كل شريك: ${formatNumber(data.perPartner)}</p>
+            </div>
+        `;
+    };
+}
+
 // كاش للحسابات المتكررة
 const calculationCache = new Map();
 const CACHE_TTL = 5000; // 5 ثواني
