@@ -37,28 +37,90 @@ function checkLowStockForPackage(packageId) {
 
 function renderInventoryTable() {
   const table = document.getElementById('inventoryTable');
-  if (!table) return; table.innerHTML = '';
+  if (!table) return; 
+  
+  // إفراغ الجدول بأمان
+  if (window.$safe && window.$safe.clear) {
+    window.$safe.clear(table);
+  } else {
+    table.innerHTML = '';
+  }
+  
   data.inventory.forEach(item => {
-    const pkg = data.packages.find(p => p.id === item.packageId); if (!pkg) return;
+    const pkg = data.packages.find(p => p.id === item.packageId); 
+    if (!pkg) return;
+    
     const retailValue = item.quantity * (pkg.retailPrice || 0);
     const wholesaleValue = item.quantity * (pkg.wholesalePrice || 0);
     const distributorValue = item.quantity * (pkg.distributorPrice || 0);
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${pkg.name}</td>
-      <td>${formatNumber(item.quantity)}</td>
-      <td class="currency">${formatNumber(retailValue)}</td>
-      <td class="currency">${formatNumber(wholesaleValue)}</td>
-      <td class="currency">${formatNumber(distributorValue)}</td>
-      <td>${item.createdAt}</td>
-      <td class="action-buttons">
-        <button class="btn btn-sm btn-warning edit-inventory" data-id="${item.id}"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-sm btn-danger delete-inventory" data-id="${item.id}"><i class="fas fa-trash"></i></button>
-      </td>`;
-    table.appendChild(row);
+    
+    if (window.$safe && window.$safe.row) {
+      // استخدام الطريقة الآمنة
+      const row = window.$safe.row([
+        pkg.name,
+        formatNumber(item.quantity),
+        {text: formatNumber(retailValue), className: 'currency'},
+        {text: formatNumber(wholesaleValue), className: 'currency'},
+        {text: formatNumber(distributorValue), className: 'currency'},
+        item.createdAt
+      ], [
+        {
+          className: 'btn btn-sm btn-warning edit-inventory',
+          icon: 'fas fa-edit',
+          dataId: item.id,
+          onClick: () => editInventory(item.id)
+        },
+        {
+          className: 'btn btn-sm btn-danger delete-inventory',
+          icon: 'fas fa-trash',
+          dataId: item.id,
+          onClick: () => deleteInventory(item.id)
+        }
+      ]);
+      table.appendChild(row);
+    } else {
+      // الطريقة التقليدية مع التعقيم
+      const row = document.createElement('tr');
+      
+      // إضافة الخلايا
+      const cells = [
+        pkg.name,
+        formatNumber(item.quantity),
+        formatNumber(retailValue),
+        formatNumber(wholesaleValue),
+        formatNumber(distributorValue),
+        item.createdAt
+      ];
+      
+      cells.forEach((content, index) => {
+        const td = document.createElement('td');
+        td.textContent = content;
+        if (index >= 2 && index <= 4) td.className = 'currency';
+        row.appendChild(td);
+      });
+      
+      // خلية الأزرار
+      const actionTd = document.createElement('td');
+      actionTd.className = 'action-buttons';
+      
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-sm btn-warning edit-inventory';
+      editBtn.dataset.id = item.id;
+      editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+      editBtn.addEventListener('click', () => editInventory(item.id));
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn btn-sm btn-danger delete-inventory';
+      deleteBtn.dataset.id = item.id;
+      deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+      deleteBtn.addEventListener('click', () => deleteInventory(item.id));
+      
+      actionTd.appendChild(editBtn);
+      actionTd.appendChild(deleteBtn);
+      row.appendChild(actionTd);
+      table.appendChild(row);
+    }
   });
-  document.querySelectorAll('.edit-inventory').forEach(btn => { btn.addEventListener('click', () => editInventory(btn.dataset.id)); });
-  document.querySelectorAll('.delete-inventory').forEach(btn => { btn.addEventListener('click', () => deleteInventory(btn.dataset.id)); });
 }
 
 function addInventory() {

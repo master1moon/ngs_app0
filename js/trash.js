@@ -87,11 +87,22 @@
         });
         
         // عرض الجدول
-        table.innerHTML = '';
+        // إفراغ الجدول بأمان
+        if (window.$safe && window.$safe.clear) {
+            window.$safe.clear(table);
+        } else {
+            while (table.firstChild) {
+                table.removeChild(table.firstChild);
+            }
+        }
         
         if (filtered.length === 0) {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="4" class="text-center">لا توجد عناصر محذوفة</td>';
+            const td = document.createElement('td');
+            td.colSpan = 4;
+            td.className = 'text-center';
+            td.textContent = 'لا توجد عناصر محذوفة';
+            row.appendChild(td);
             table.appendChild(row);
             return;
         }
@@ -105,30 +116,59 @@
                 formatDateEn(trashItem.deletedAt) : 
                 new Date(trashItem.deletedAt).toLocaleDateString('en-US');
             
-            row.innerHTML = `
-                <td>${sectionName}</td>
-                <td>${itemDesc}</td>
-                <td>${deletedDate}</td>
-                <td class="action-buttons">
-                    <button class="btn btn-sm btn-success restore-item" data-id="${trashItem.id}">
-                        <i class="fas fa-undo"></i> استعادة
-                    </button>
-                    <button class="btn btn-sm btn-danger delete-forever" data-id="${trashItem.id}">
-                        <i class="fas fa-trash"></i> حذف نهائياً
-                    </button>
-                </td>
-            `;
-            
-            table.appendChild(row);
-        });
-        
-        // إضافة معالجات الأحداث
-        document.querySelectorAll('.restore-item').forEach(btn => {
-            btn.addEventListener('click', () => restoreItem(btn.dataset.id));
-        });
-        
-        document.querySelectorAll('.delete-forever').forEach(btn => {
-            btn.addEventListener('click', () => deleteForever(btn.dataset.id));
+            if (window.$safe && window.$safe.row) {
+                // استخدام الطريقة الآمنة
+                const safeRow = window.$safe.row([
+                    sectionName,
+                    itemDesc,
+                    deletedDate
+                ], [
+                    {
+                        className: 'btn btn-sm btn-success restore-item',
+                        icon: 'fas fa-undo',
+                        text: 'استعادة',
+                        dataId: trashItem.id,
+                        onClick: () => restoreItem(trashItem.id)
+                    },
+                    {
+                        className: 'btn btn-sm btn-danger delete-forever',
+                        icon: 'fas fa-trash',
+                        text: 'حذف نهائياً',
+                        dataId: trashItem.id,
+                        onClick: () => deleteForever(trashItem.id)
+                    }
+                ]);
+                table.appendChild(safeRow);
+            } else {
+                // الطريقة التقليدية مع التعقيم
+                const cells = [sectionName, itemDesc, deletedDate];
+                cells.forEach(content => {
+                    const td = document.createElement('td');
+                    td.textContent = content;
+                    row.appendChild(td);
+                });
+                
+                const actionTd = document.createElement('td');
+                actionTd.className = 'action-buttons';
+                
+                const restoreBtn = document.createElement('button');
+                restoreBtn.className = 'btn btn-sm btn-success restore-item';
+                restoreBtn.dataset.id = trashItem.id;
+                restoreBtn.innerHTML = '<i class="fas fa-undo"></i> استعادة';
+                restoreBtn.addEventListener('click', () => restoreItem(trashItem.id));
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-sm btn-danger delete-forever';
+                deleteBtn.dataset.id = trashItem.id;
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i> حذف نهائياً';
+                deleteBtn.addEventListener('click', () => deleteForever(trashItem.id));
+                
+                actionTd.appendChild(restoreBtn);
+                actionTd.appendChild(deleteBtn);
+                row.appendChild(actionTd);
+                
+                table.appendChild(row);
+            }
         });
     }
 

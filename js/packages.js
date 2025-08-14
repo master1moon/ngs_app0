@@ -1,23 +1,79 @@
 // إدارة الباقات
 function renderPackagesTable() {
   const table = document.getElementById('packagesTable');
-  if (!table) return; table.innerHTML = '';
+  if (!table) return; 
+  
+  // إفراغ الجدول بأمان
+  if (window.$safe && window.$safe.clear) {
+    window.$safe.clear(table);
+  } else {
+    table.innerHTML = '';
+  }
+  
   data.packages.forEach(pkg => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${pkg.name}</td>
-      <td class="currency">${pkg.retailPrice ? formatNumber(pkg.retailPrice) : '-'}</td>
-      <td class="currency">${pkg.wholesalePrice ? formatNumber(pkg.wholesalePrice) : '-'}</td>
-      <td class="currency">${pkg.distributorPrice ? formatNumber(pkg.distributorPrice) : '-'}</td>
-      <td>${pkg.createdAt}</td>
-      <td class="action-buttons">
-        <button class="btn btn-sm btn-warning edit-package" data-id="${pkg.id}"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-sm btn-danger delete-package" data-id="${pkg.id}"><i class="fas fa-trash"></i></button>
-      </td>`;
-    table.appendChild(row);
+    if (window.$safe && window.$safe.row) {
+      // استخدام الطريقة الآمنة
+      const row = window.$safe.row([
+        pkg.name,
+        {text: pkg.retailPrice ? formatNumber(pkg.retailPrice) : '-', className: 'currency'},
+        {text: pkg.wholesalePrice ? formatNumber(pkg.wholesalePrice) : '-', className: 'currency'},
+        {text: pkg.distributorPrice ? formatNumber(pkg.distributorPrice) : '-', className: 'currency'},
+        pkg.createdAt
+      ], [
+        {
+          className: 'btn btn-sm btn-warning edit-package',
+          icon: 'fas fa-edit',
+          dataId: pkg.id,
+          onClick: () => editPackage(pkg.id)
+        },
+        {
+          className: 'btn btn-sm btn-danger delete-package',
+          icon: 'fas fa-trash',
+          dataId: pkg.id,
+          onClick: () => deletePackage(pkg.id)
+        }
+      ]);
+      table.appendChild(row);
+    } else {
+      // الطريقة التقليدية مع التعقيم
+      const row = document.createElement('tr');
+      const cells = [
+        pkg.name,
+        pkg.retailPrice ? formatNumber(pkg.retailPrice) : '-',
+        pkg.wholesalePrice ? formatNumber(pkg.wholesalePrice) : '-',
+        pkg.distributorPrice ? formatNumber(pkg.distributorPrice) : '-',
+        pkg.createdAt
+      ];
+      
+      cells.forEach((content, index) => {
+        const td = document.createElement('td');
+        td.textContent = content;
+        if (index >= 1 && index <= 3) td.className = 'currency';
+        row.appendChild(td);
+      });
+      
+      // خلية الأزرار
+      const actionTd = document.createElement('td');
+      actionTd.className = 'action-buttons';
+      
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-sm btn-warning edit-package';
+      editBtn.dataset.id = pkg.id;
+      editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+      editBtn.addEventListener('click', () => editPackage(pkg.id));
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn btn-sm btn-danger delete-package';
+      deleteBtn.dataset.id = pkg.id;
+      deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+      deleteBtn.addEventListener('click', () => deletePackage(pkg.id));
+      
+      actionTd.appendChild(editBtn);
+      actionTd.appendChild(deleteBtn);
+      row.appendChild(actionTd);
+      table.appendChild(row);
+    }
   });
-  document.querySelectorAll('.edit-package').forEach(btn => { btn.addEventListener('click', () => editPackage(btn.dataset.id)); });
-  document.querySelectorAll('.delete-package').forEach(btn => { btn.addEventListener('click', () => deletePackage(btn.dataset.id)); });
 }
 
 function addPackage() {
