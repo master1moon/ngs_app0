@@ -3515,7 +3515,11 @@
             
             reader.onload = function(e) {
                 try {
+                    console.log('بدء قراءة الملف...');
+                    console.log('محتوى الملف الخام:', e.target.result.substring(0, 200) + '...');
+                    
                     const importedData = JSON.parse(e.target.result);
+                    console.log('تم تحليل JSON بنجاح:', importedData);
                     
                     // التحقق من صحة البيانات المستوردة
                     if (!importedData || typeof importedData !== 'object') {
@@ -3540,7 +3544,11 @@
                         return Array.from(map.entries()).map(([k,v]) => v);
                     }
                     
+                    console.log('نوع البيانات المختار:', dataType);
+                    console.log('وضع الاستبدال:', replace);
+                    
                     if (dataType === 'all') {
+                        console.log('استيراد جميع البيانات...');
                         if (replace) {
                             data = {
                                 packages: toArraySafe(importedData.packages),
@@ -3550,6 +3558,7 @@
                                 sales: toArraySafe(importedData.sales),
                                 payments: toArraySafe(importedData.payments)
                             };
+                            console.log('تم استبدال البيانات:', data);
                         } else {
                             // دمج فريد حسب المعرّف لكل نوع
                             data.packages = mergeUniqueById(data.packages, importedData.packages);
@@ -3561,14 +3570,19 @@
                         }
                     } else {
                         // التعامل مع استيراد نوع واحد من البيانات
+                        console.log('استيراد نوع واحد:', dataType);
                         let incoming;
                         
                         // التحقق من التنسيق: هل هو مصفوفة مباشرة أو كائن يحتوي على المصفوفة
                         if (Array.isArray(importedData)) {
+                            console.log('البيانات عبارة عن مصفوفة مباشرة');
                             incoming = importedData;
                         } else if (importedData[dataType] && Array.isArray(importedData[dataType])) {
+                            console.log('البيانات عبارة عن كائن يحتوي على مصفوفة');
                             incoming = importedData[dataType];
                         } else {
+                            console.log('لم يتم العثور على بيانات صحيحة. البيانات المستوردة:', importedData);
+                            console.log('المفتاح المطلوب:', dataType);
                             throw new Error(`لا يمكن العثور على بيانات ${dataType} صحيحة في الملف`);
                         }
                         
@@ -3579,11 +3593,14 @@
                         
                         if (replace) {
                             data[dataType] = incoming;
+                            console.log(`تم استبدال ${dataType}:`, incoming);
                         } else {
                             data[dataType] = mergeUniqueById(data[dataType], incoming);
+                            console.log(`تم دمج ${dataType}:`, data[dataType]);
                         }
                     }
                     
+                    console.log('البيانات قبل الحفظ:', data);
                     saveData();
                     showNotification('تم استيراد البيانات بنجاح (تمت إزالة التكرارات)', 'success');
                     
