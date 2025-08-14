@@ -3476,6 +3476,18 @@
 
         // استيراد البيانات
         function importData() {
+            // التأكد من وجود كائن البيانات
+            if (typeof data === 'undefined' || !data) {
+                window.data = {
+                    packages: [],
+                    inventory: [],
+                    stores: [],
+                    expenses: [],
+                    sales: [],
+                    payments: []
+                };
+            }
+            
             const fileInput = document.getElementById('importFile');
             const replace = document.getElementById('replaceData').checked;
             const dataType = document.getElementById('importDataType').value;
@@ -3486,6 +3498,19 @@
             }
             
             const file = fileInput.files[0];
+            
+            // التحقق من نوع الملف
+            if (!file.type.includes('json') && !file.name.endsWith('.json')) {
+                showNotification('يرجى اختيار ملف JSON صحيح', 'error');
+                return;
+            }
+            
+            // التحقق من حجم الملف (10 ميجابايت كحد أقصى)
+            if (file.size > 10 * 1024 * 1024) {
+                showNotification('حجم الملف كبير جداً (الحد الأقصى 10 ميجابايت)', 'error');
+                return;
+            }
+            
             const reader = new FileReader();
             
             reader.onload = function(e) {
@@ -3535,7 +3560,23 @@
                             data.payments = mergeUniqueById(data.payments, importedData.payments);
                         }
                     } else {
-                        const incoming = toArraySafe(importedData);
+                        // التعامل مع استيراد نوع واحد من البيانات
+                        let incoming;
+                        
+                        // التحقق من التنسيق: هل هو مصفوفة مباشرة أو كائن يحتوي على المصفوفة
+                        if (Array.isArray(importedData)) {
+                            incoming = importedData;
+                        } else if (importedData[dataType] && Array.isArray(importedData[dataType])) {
+                            incoming = importedData[dataType];
+                        } else {
+                            throw new Error(`لا يمكن العثور على بيانات ${dataType} صحيحة في الملف`);
+                        }
+                        
+                        // التحقق من صحة البيانات المستوردة
+                        if (!Array.isArray(incoming)) {
+                            throw new Error(`البيانات المستوردة لـ ${dataType} ليست مصفوفة`);
+                        }
+                        
                         if (replace) {
                             data[dataType] = incoming;
                         } else {
@@ -3559,15 +3600,27 @@
                     
                 } catch (error) {
                     console.error('خطأ في استيراد البيانات:', error);
+                    
+                    // إزالة المحتوى من input file
+                    fileInput.value = '';
+                    
                     if (error instanceof SyntaxError) {
                         showNotification('خطأ في تنسيق ملف JSON. يرجى التأكد من صحة الملف', 'error');
+                    } else if (error.message.includes('لا يمكن العثور على بيانات')) {
+                        showNotification(error.message, 'error');
+                    } else if (error.message.includes('ليست مصفوفة')) {
+                        showNotification(error.message, 'error');
                     } else {
-                        showNotification('حدث خطأ غير متوقع أثناء استيراد البيانات: ' + error.message, 'error');
+                        showNotification('حدث خطأ غير متوقع: ' + error.message, 'error');
                     }
                 }
             };
             
-            reader.readAsText(file);
+            reader.onerror = function() {
+                showNotification('خطأ في قراءة الملف', 'error');
+            };
+            
+            reader.readAsText(file, 'UTF-8');
         }
         
         // إظهار الإشعارات
