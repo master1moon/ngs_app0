@@ -3658,6 +3658,23 @@
             // تحميل البيانات
             loadData();
             
+            // التأكد من توفر دوال التصدير بعد تحميل جميع الملفات
+            setTimeout(() => {
+                // نسخ الدوال إلى النطاق العام إذا لم تكن متاحة
+                if (!window.exportStoreData && typeof exportStoreData !== 'undefined') {
+                    window.exportStoreData = exportStoreData;
+                }
+                if (!window.exportExpensesData && typeof exportExpensesData !== 'undefined') {
+                    window.exportExpensesData = exportExpensesData;
+                }
+                
+                console.log('فحص دوال التصدير:', {
+                    exportStoreData: typeof window.exportStoreData,
+                    exportExpensesData: typeof window.exportExpensesData,
+                    exportReportsData: typeof exportReportsData
+                });
+            }, 500);
+            
             // توليد تقارير
             generateDebtReport();
             generatePartnerReports();
@@ -3705,15 +3722,36 @@
             document.body.addEventListener('click', function(e) {
                 const btn = e.target.closest && e.target.closest('.export-btn');
                 if (!btn) return;
+                
                 const type = btn.getAttribute('data-type');
                 const format = btn.getAttribute('data-format');
                 const storeId = btn.getAttribute('data-store') || '';
+                
+                console.log('تصدير:', { type, format, storeId });
+                
                 if (type === 'expenses') {
-                    exportExpensesData(format);
+                    if (typeof exportExpensesData === 'function') {
+                        exportExpensesData(format);
+                    } else {
+                        console.error('دالة exportExpensesData غير موجودة');
+                        showNotification('خطأ: دالة التصدير غير متوفرة', 'error');
+                    }
                 } else if (type === 'reports') {
-                    exportReportsData(format);
+                    if (typeof exportReportsData === 'function') {
+                        exportReportsData(format);
+                    } else {
+                        console.error('دالة exportReportsData غير موجودة');
+                        showNotification('خطأ: دالة التصدير غير متوفرة', 'error');
+                    }
                 } else if (type === 'store') {
-                    exportStoreData(storeId, format);
+                    if (typeof exportStoreData === 'function') {
+                        exportStoreData(storeId, format);
+                    } else if (window.exportStoreData) {
+                        window.exportStoreData(storeId, format);
+                    } else {
+                        console.error('دالة exportStoreData غير موجودة');
+                        showNotification('خطأ: دالة التصدير غير متوفرة', 'error');
+                    }
                 }
             }, false);
             

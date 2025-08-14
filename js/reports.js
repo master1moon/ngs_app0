@@ -32,6 +32,7 @@ if (typeof window !== 'undefined') {
   window.updateDashboard = window.updateDashboard || updateDashboardReports;
   // تصدير الدوال للنطاق العام
   window.exportStoreData = exportStoreData;
+  window.exportExpensesData = exportExpensesData;
   window.getPriceTypeName = getPriceTypeName;
   window.buildStoreReportHTML = buildStoreReportHTML;
 }
@@ -415,16 +416,19 @@ async function exportStoreData(storeId, format) {
   const totalPayments = storePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const remaining = totalSales - totalPayments;
   const packageIdToName = new Map((data.packages || []).map(p => [p.id + '', p.name]));
-  const mappedSalesForExport = storeSales.map(s => ({
-    التاريخ: formatDateEn(s.date),
-    التفاصيل: s.reason || (s.packageId ? 'بيع باقة' : 'بيع مخصص'),
-    الباقة: s.packageId && s.packageId !== 'custom' ? (packageIdToName.get(s.packageId + '') || 'غير معروف') : 'مخصص',
-    الكمية_أو_المبلغ: s.packageId === 'custom' ? s.amount : s.quantity,
-    الإجمالي: s.total
-  }));
-  const mappedPaymentsForExport = storePayments.map(p => ({ التاريخ: formatDateEn(p.date), المبلغ: p.amount, ملاحظات: p.notes || '' }));
-  const filename = `تفاصيل_${store.name.replace(/\s+/g, '_')}_${moment().format('YYYYMMDD')}`;
-  const periodText = `${formatDateEn(fromDate) || 'من البداية'} إلى ${formatDateEn(toDate) || 'حتى الآن'}`;
+              // استخدام formatDateEn إذا كانت متاحة، وإلا استخدام التاريخ كما هو
+    const formatDate = (typeof formatDateEn === 'function') ? formatDateEn : (d => d || '');
+    
+    const mappedSalesForExport = storeSales.map(s => ({
+      التاريخ: formatDate(s.date),
+      التفاصيل: s.reason || (s.packageId ? 'بيع باقة' : 'بيع مخصص'),
+      الباقة: s.packageId && s.packageId !== 'custom' ? (packageIdToName.get(s.packageId + '') || 'غير معروف') : 'مخصص',
+      الكمية_أو_المبلغ: s.packageId === 'custom' ? s.amount : s.quantity,
+      الإجمالي: s.total
+    }));
+    const mappedPaymentsForExport = storePayments.map(p => ({ التاريخ: formatDate(p.date), المبلغ: p.amount, ملاحظات: p.notes || '' }));
+    const filename = `تفاصيل_${store.name.replace(/\s+/g, '_')}_${moment().format('YYYYMMDD')}`;
+    const periodText = `${formatDate(fromDate) || 'من البداية'} إلى ${formatDate(toDate) || 'حتى الآن'}`;
   if (format === 'json') {
     const arabic = { المحل: { اسم: store.name, نوع_السعر: getPriceTypeName(store.priceType) }, الفترة: periodText, الملخص: { إجمالي_المبيعات: totalSales, إجمالي_التسديدات: totalPayments, المتبقي: remaining }, المبيعات: mappedSalesForExport, التسديدات: mappedPaymentsForExport };
     const dataStr = JSON.stringify(arabic, null, 2);

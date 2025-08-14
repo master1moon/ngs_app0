@@ -169,3 +169,13 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function setTextSafe(el, text){ if (el) el.textContent = text; }
+
+// تصدير الدوال للنطاق العام
+if (typeof window !== 'undefined') {
+  window.toEnglishDigits = toEnglishDigits;
+  window.formatNumber = formatNumber;
+  window.parseFormattedNumber = parseFormattedNumber;
+  window.formatDateEn = formatDateEn;
+  window.showNotification = showNotification;
+  window.switchSection = switchSection;
+}
