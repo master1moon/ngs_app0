@@ -14,6 +14,7 @@ const CRITICAL_ASSETS = [
   './js/dataValidator.js',
   './js/utils.js',
   './js/reports.js',
+  './js/reportsOptimized.js',
   './js/inventory.js',
   './js/sales.js',
   './js/payments.js',
