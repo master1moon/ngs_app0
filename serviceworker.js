@@ -7,6 +7,7 @@ const CRITICAL_ASSETS = [
   './manifest.json',
   './fonts/Amiri-Regular.woff2',
   './app.js',
+  './js/dataValidator.js',
   './js/utils.js',
   './js/reports.js',
   './js/inventory.js',

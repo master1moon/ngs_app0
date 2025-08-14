@@ -1555,11 +1555,44 @@
         
         // استرجاع البيانات من localStorage إن وجدت
         function loadData() {
-            const savedData = localStorage.getItem('networkCardsData');
-            if (savedData) {
-                data = JSON.parse(savedData);
-                showNotification('تم تحميل البيانات بنجاح', 'success');
+            try {
+                const savedData = localStorage.getItem('networkCardsData');
+                if (savedData) {
+                    const parsedData = JSON.parse(savedData);
+                    // التحقق من صحة البيانات
+                    if (typeof parsedData === 'object' && parsedData !== null) {
+                        // التأكد من وجود جميع الخصائص المطلوبة
+                        data = {
+                            packages: Array.isArray(parsedData.packages) ? parsedData.packages : [],
+                            inventory: Array.isArray(parsedData.inventory) ? parsedData.inventory : [],
+                            stores: Array.isArray(parsedData.stores) ? parsedData.stores : [],
+                            expenses: Array.isArray(parsedData.expenses) ? parsedData.expenses : [],
+                            sales: Array.isArray(parsedData.sales) ? parsedData.sales : [],
+                            payments: Array.isArray(parsedData.payments) ? parsedData.payments : []
+                        };
+                        showNotification('تم تحميل البيانات بنجاح', 'success');
+                    } else {
+                        throw new Error('تنسيق البيانات غير صحيح');
+                    }
+                } else {
+                    // إذا لم توجد بيانات محفوظة، استخدم البيانات الافتراضية
+                    showNotification('لا توجد بيانات محفوظة، سيتم استخدام بيانات جديدة', 'info');
+                }
+            } catch (error) {
+                console.error('خطأ في تحميل البيانات:', error);
+                showNotification('حدث خطأ في تحميل البيانات، سيتم استخدام بيانات جديدة', 'error');
+                // إعادة تعيين البيانات إلى القيم الافتراضية
+                data = {
+                    packages: [],
+                    inventory: [],
+                    stores: [],
+                    expenses: [],
+                    sales: [],
+                    payments: []
+                };
             }
+            
+            // تحديث جميع الواجهات
             updateDashboard();
             renderPackagesTable();
             renderInventoryTable();
@@ -1572,10 +1605,35 @@
         
         // حفظ البيانات إلى localStorage
         function saveData() {
-            localStorage.setItem('networkCardsData', JSON.stringify(data));
-            showNotification('تم حفظ البيانات بنجاح', 'success');
-            if (typeof githubSettings !== 'undefined' && githubSettings && githubSettings.autoSync && githubSettings.token && githubSettings.gistId) {
-                githubUploadData().catch(() => {});
+            try {
+                // التحقق من صحة البيانات قبل الحفظ
+                if (!data || typeof data !== 'object') {
+                    throw new Error('البيانات غير صحيحة');
+                }
+                
+                // التأكد من وجود جميع الخصائص المطلوبة
+                const validData = {
+                    packages: Array.isArray(data.packages) ? data.packages : [],
+                    inventory: Array.isArray(data.inventory) ? data.inventory : [],
+                    stores: Array.isArray(data.stores) ? data.stores : [],
+                    expenses: Array.isArray(data.expenses) ? data.expenses : [],
+                    sales: Array.isArray(data.sales) ? data.sales : [],
+                    payments: Array.isArray(data.payments) ? data.payments : []
+                };
+                
+                // تحديث الكائن الأصلي بالبيانات الصحيحة
+                data = validData;
+                
+                localStorage.setItem('networkCardsData', JSON.stringify(validData));
+                showNotification('تم حفظ البيانات بنجاح', 'success');
+                
+                // المزامنة مع GitHub إذا كانت مفعلة
+                if (typeof githubSettings !== 'undefined' && githubSettings && githubSettings.autoSync && githubSettings.token && githubSettings.gistId) {
+                    githubUploadData().catch(() => {});
+                }
+            } catch (error) {
+                console.error('خطأ في حفظ البيانات:', error);
+                showNotification('حدث خطأ في حفظ البيانات', 'error');
             }
         }
         
@@ -3432,7 +3490,12 @@
             
             reader.onload = function(e) {
                 try {
-                    const importedData = JSON.parse(e.target.result) || {};
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // التحقق من صحة البيانات المستوردة
+                    if (!importedData || typeof importedData !== 'object') {
+                        throw new Error('البيانات المستوردة غير صحيحة');
+                    }
 
                     function toArraySafe(x){ return Array.isArray(x) ? x : []; }
                     function mergeUniqueById(existingArr, incomingArr){
@@ -3495,8 +3558,12 @@
                     generatePartnerReports();
                     
                 } catch (error) {
-                    showNotification('خطأ في تحليل ملف JSON', 'error');
-                    console.error(error);
+                    console.error('خطأ في استيراد البيانات:', error);
+                    if (error instanceof SyntaxError) {
+                        showNotification('خطأ في تنسيق ملف JSON. يرجى التأكد من صحة الملف', 'error');
+                    } else {
+                        showNotification('حدث خطأ غير متوقع أثناء استيراد البيانات: ' + error.message, 'error');
+                    }
                 }
             };
             
@@ -3753,6 +3820,8 @@
         });
     </script>
 
+    <script src="./js/dataValidator.js"></script>
+    <script src="./js/quickFixes.js"></script>
     <script src="./js/utils.js"></script>
     <script src="./app.js"></script>
     <script src="./js/reports.js"></script>
