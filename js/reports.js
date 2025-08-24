@@ -50,6 +50,8 @@ function getPriceTypeName(priceType) {
 function isStoreMatch(item) {
   const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
   if (storeFilter === 'all') return true;
+  // المصروفات ليست مرتبطة بمحل معين، لذا نعرضها دائماً
+  if (item.amount && !item.storeId && !item.packageId) return true;
   return String(item.storeId || '') === String(storeFilter);
 }
 
@@ -833,6 +835,37 @@ function __syncReportsCustomVisibility(){
 
 function __reRenderReports(){
 	try {
+		// تطبيق فلتر القسم على البطاقات
+		const sectionFilter = document.getElementById('reportsSectionFilter')?.value || 'all';
+		
+		// قائمة البطاقات حسب القسم
+		const cardsBySection = {
+			'sales': ['salesReportCard'],
+			'payments': ['paymentsReportCard'],
+			'expenses': ['expensesReportCard'],
+			'debts': ['debtsReportCard'],
+			'all': null // null يعني إظهار الكل
+		};
+		
+		// إخفاء/إظهار البطاقات حسب الفلتر
+		const allCards = ['salesReportCard', 'paymentsReportCard', 'expensesReportCard', 
+		                  'debtsReportCard', 'profitReportCard', 'comparisonReportCard', 
+		                  'partnerReportsCard'];
+		
+		allCards.forEach(cardId => {
+			const card = document.getElementById(cardId);
+			if (card) {
+				if (sectionFilter === 'all') {
+					card.style.display = '';
+				} else if (cardsBySection[sectionFilter]) {
+					card.style.display = cardsBySection[sectionFilter].includes(cardId) ? '' : 'none';
+				} else {
+					card.style.display = '';
+				}
+			}
+		});
+		
+		// تحديث التقارير
 		updateProfitReport();
 		generateDebtReport();
 		generatePartnerReports();
