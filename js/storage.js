@@ -1,10 +1,23 @@
 // IndexedDB storage layer with graceful fallback to localStorage
+
+/**
+ * نظام التخزين باستخدام IndexedDB
+ * يوفر تخزين متقدم للبيانات مع بديل localStorage
+ * يدعم الفهرسة للمصروفات لتسريع البحث والفلترة
+ * يحسن من أداء التطبيق مع البيانات الكبيرة
+ */
 (function(){
   const DB_NAME = 'networkCardsDB';
   const DB_VERSION = 5;
   const STORE = 'app';
   let dbPromise = null;
 
+  /**
+   * فتح قاعدة بيانات IndexedDB
+   * ينشئ مخازن للتطبيق، النسخ الاحتياطية، واللقطات
+   * يضيف فهارس للمصروفات لتحسين الأداء
+   * @returns {Promise<IDBDatabase>} قاعدة البيانات
+   */
   function openDB(){
     if (dbPromise) return dbPromise;
     dbPromise = new Promise((resolve, reject) => {
@@ -33,6 +46,11 @@
     return dbPromise;
   }
 
+  /**
+   * قراءة بيانات من IndexedDB
+   * @param {string} storeKey - مفتاح البيانات
+   * @returns {Promise<any>} البيانات المخزنة
+   */
   async function idbGet(storeKey){
     try{
       const db = await openDB();
@@ -46,6 +64,12 @@
     }catch(e){ return undefined; }
   }
 
+  /**
+   * حفظ بيانات في IndexedDB
+   * @param {string} key - مفتاح التخزين
+   * @param {any} value - البيانات للحفظ
+   * @returns {Promise<boolean>} نجاح العملية
+   */
   async function idbSet(key, value){
     try{
       const db = await openDB();
@@ -59,6 +83,11 @@
     }catch(e){ return false; }
   }
 
+  /**
+   * الحصول على مرجع بيانات التطبيق
+   * يبحث عن البيانات في window.data أو data العامة
+   * @returns {Object|undefined} كائن البيانات
+   */
   function getDataRef(){
     try {
       if (typeof window !== 'undefined' && typeof window.data !== 'undefined') return window.data;
@@ -67,6 +96,11 @@
     return undefined;
   }
 
+  /**
+   * مزامنة المصروفات مع IndexedDB
+   * ينظف ويعيد ملء مخزن المصروفات
+   * يستخدم لتسريع عمليات البحث والفلترة
+   */
   async function syncExpensesToIndexed(){
     try {
       const db = await openDB();
@@ -85,6 +119,13 @@
   const originalLoadData = window.loadData;
   const originalSaveData = window.saveData;
 
+  /**
+   * تحميل البيانات مع دعم IndexedDB
+   * يحاول التحميل من IndexedDB أولاً
+   * يطبع التواريخ بصيغة موحدة
+   * يرسل حدث app-data-loaded عند الانتهاء
+   * @returns {Promise<void>}
+   */
   window.loadData = async function(){
     try{
       const stored = await idbGet('root');
@@ -109,6 +150,12 @@
     return result;
   };
 
+  /**
+   * حفظ البيانات مع دعم IndexedDB
+   * يحفظ في localStorage وIndexedDB
+   * يزامن المصروفات مع مخزن منفصل
+   * @returns {void}
+   */
   window.saveData = function(){
     const result = originalSaveData();
     try { const dref = getDataRef(); if (dref) { idbSet('root', dref); syncExpensesToIndexed(); } } catch(_){ }

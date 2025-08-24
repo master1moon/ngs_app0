@@ -1,10 +1,25 @@
 // إدارة المخزون
+
+/**
+ * حساب إجمالي المخزون لباقة محددة
+ * يجمع كميات جميع عناصر المخزون لنفس الباقة
+ * @param {string} packageId - معرف الباقة
+ * @returns {number} إجمالي الكمية المتوفرة
+ */
 function getTotalInventoryForPackage(packageId) {
   return data.inventory
     .filter(item => item.packageId === packageId)
     .reduce((sum, item) => sum + (item.quantity || 0), 0);
 }
 
+/**
+ * خصم كمية من المخزون
+ * يتحقق من توفر الكمية المطلوبة قبل الخصم
+ * يخصم من عدة عناصر مخزون إذا لزم الأمر (يبدأ بالأقدم)
+ * @param {string} packageId - معرف الباقة
+ * @param {number} quantity - الكمية المطلوب خصمها
+ * @returns {boolean} true إذا تم الخصم بنجاح، false إذا لم تكن الكمية متوفرة
+ */
 function deductFromInventory(packageId, quantity) {
   const totalAvailable = getTotalInventoryForPackage(packageId);
   if (totalAvailable < quantity) return false;
@@ -20,12 +35,23 @@ function deductFromInventory(packageId, quantity) {
   return true;
 }
 
+/**
+ * إضافة كمية إلى المخزون
+ * يضيف إلى عنصر موجود أو ينشئ عنصر جديد إذا لزم الأمر
+ * @param {string} packageId - معرف الباقة
+ * @param {number} quantity - الكمية المطلوب إضافتها
+ */
 function addToInventory(packageId, quantity) {
   const existing = data.inventory.find(i => i.packageId === packageId);
   if (existing) { existing.quantity = (existing.quantity || 0) + quantity; }
   else { data.inventory.push({ id: 'inv_' + Date.now(), packageId, quantity, createdAt: today }); }
 }
 
+/**
+ * التحقق من انخفاض مخزون باقة محددة
+ * يعرض تحذيراً إذا كان المخزون أقل من 200 كرت
+ * @param {string} packageId - معرف الباقة المراد فحصها
+ */
 function checkLowStockForPackage(packageId) {
   const total = getTotalInventoryForPackage(packageId);
   if (total < 200) {
@@ -35,6 +61,13 @@ function checkLowStockForPackage(packageId) {
   }
 }
 
+/**
+ * عرض جدول المخزون
+ * يعرض جميع عناصر المخزون مع الكميات والقيم
+ * يحسب قيمة المخزون بناءً على أنواع الأسعار المختلفة
+ * يستخدم الطريقة الآمنة لعرض البيانات إذا كانت متاحة
+ * يضيف أزرار التحكم (تعديل، حذف) لكل عنصر
+ */
 function renderInventoryTable() {
   const table = document.getElementById('inventoryTable');
   if (!table) return; 
@@ -123,6 +156,11 @@ function renderInventoryTable() {
   });
 }
 
+/**
+ * فتح نموذج إضافة كمية جديدة للمخزون
+ * يملأ قائمة الباقات من البيانات المتاحة
+ * يعيد تعيين جميع حقول النموذج إلى قيمها الافتراضية
+ */
 function addInventory() {
   const select = document.getElementById('inventoryPackage'); if (!select) return;
   select.innerHTML = '';
@@ -134,6 +172,11 @@ function addInventory() {
   const modal = new bootstrap.Modal(document.getElementById('inventoryModal')); modal.show();
 }
 
+/**
+ * فتح نموذج تعديل عنصر مخزون موجود
+ * يملأ النموذج بالبيانات الحالية للعنصر
+ * @param {string} id - معرف عنصر المخزون المراد تعديله
+ */
 function editInventory(id) {
   const item = data.inventory.find(i => i.id === id); if (!item) return;
   const select = document.getElementById('inventoryPackage'); if (!select) return;
@@ -146,6 +189,12 @@ function editInventory(id) {
   const modal = new bootstrap.Modal(document.getElementById('inventoryModal')); modal.show();
 }
 
+/**
+ * حذف عنصر من المخزون
+ * يطلب تأكيد من المستخدم قبل الحذف
+ * ينقل العنصر المحذوف إلى سلة المحذوفات إذا كانت متاحة
+ * @param {string} id - معرف عنصر المخزون المراد حذفه
+ */
 function deleteInventory(id) {
   if (!confirm('هل أنت متأكد من حذف هذه الكمية؟')) return;
   const inv = data.inventory.find(i => i.id === id);
@@ -155,6 +204,12 @@ function deleteInventory(id) {
   showNotification('تم حذف الكمية بنجاح', 'success');
 }
 
+/**
+ * حفظ بيانات المخزون (إضافة جديد أو تحديث موجود)
+ * يتحقق من صحة البيانات المدخلة (الباقة، الكمية)
+ * ينشئ معرف فريد للعناصر الجديدة
+ * يحدث جدول المخزون ولوحة المعلومات
+ */
 function saveInventory() {
   const id = document.getElementById('inventoryId').value;
   const packageId = document.getElementById('inventoryPackage').value;

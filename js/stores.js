@@ -1,4 +1,10 @@
 // إدارة المحلات
+
+/**
+ * عرض قائمة المحلات في الشريط الجانبي
+ * يقوم بإنشاء عناصر القائمة لكل محل مع عرض اسمه ونوع السعر
+ * يضيف مستمع للنقر على كل محل لعرض تفاصيله
+ */
 function renderStoresList() {
   const list = document.getElementById('storesList'); if (!list) return;
   list.innerHTML = '';
@@ -10,6 +16,13 @@ function renderStoresList() {
   });
 }
 
+/**
+ * عرض تفاصيل محل محدد
+ * يعرض الرصيد الحالي، نوع السعر، جدول المبيعات والمدفوعات
+ * يحسب إجمالي المبيعات والمدفوعات والرصيد المتبقي
+ * يضيف أزرار التحكم (إضافة بيع، تسديد دفعة، تعديل، حذف)
+ * @param {string} storeId - معرف المحل
+ */
 function showStoreDetails(storeId) {
   const store = data.stores.find(s => s.id === storeId); if (!store) return;
   document.getElementById('storeHeader').textContent = `تفاصيل المحل: ${store.name}`;
@@ -89,6 +102,11 @@ function showStoreDetails(storeId) {
   document.querySelectorAll('.delete-payment').forEach(btn => { btn.addEventListener('click', () => deletePayment(btn.dataset.id)); });
 }
 
+/**
+ * فتح نموذج إضافة محل جديد
+ * يعيد تعيين جميع حقول النموذج إلى قيمها الافتراضية
+ * يضبط التاريخ على اليوم الحالي
+ */
 function addStore() {
   document.getElementById('storeModalTitle').textContent = 'إضافة محل جديد';
   document.getElementById('storeId').value = '';
@@ -98,6 +116,11 @@ function addStore() {
   const modal = new bootstrap.Modal(document.getElementById('storeModal')); modal.show();
 }
 
+/**
+ * فتح نموذج تعديل محل موجود
+ * يملأ النموذج بالبيانات الحالية للمحل
+ * @param {string} id - معرف المحل المراد تعديله
+ */
 function editStore(id) {
   const store = data.stores.find(s => s.id === id); if (!store) return;
   document.getElementById('storeModalTitle').textContent = 'تعديل المحل';
@@ -108,6 +131,13 @@ function editStore(id) {
   const modal = new bootstrap.Modal(document.getElementById('storeModal')); modal.show();
 }
 
+/**
+ * حذف محل من القائمة
+ * يطلب تأكيد من المستخدم قبل الحذف
+ * ينقل المحل المحذوف إلى سلة المحذوفات إذا كانت متاحة
+ * يحدث جميع الجداول والتقارير المتعلقة
+ * @param {string} id - معرف المحل المراد حذفه
+ */
 function deleteStore(id) {
   if (!confirm('هل أنت متأكد من حذف هذا المحل؟')) return;
   const store = data.stores.find(s => s.id === id);
@@ -117,6 +147,13 @@ function deleteStore(id) {
   showNotification('تم حذف المحل بنجاح', 'success');
 }
 
+/**
+ * حفظ بيانات المحل (إضافة جديد أو تحديث موجود)
+ * يتحقق من صحة البيانات المدخلة
+ * يقوم بإنشاء معرف فريد للمحلات الجديدة
+ * يحدث جميع الجداول والتقارير ذات الصلة
+ * يعرض إشعار بنجاح العملية
+ */
 function saveStore() {
   const id = document.getElementById('storeId').value;
   const name = document.getElementById('storeName').value;
@@ -142,6 +179,12 @@ function saveStore() {
 
 // تم نقل دالة exportStoreData إلى reports.js لتجنب التكرار
 
+/**
+ * نظام الاختصارات السريعة لانتقاء المحل
+ * يوفر واجهة سريعة لاختيار محل قبل إضافة بيع أو دفعة
+ * يحتوي على أزرار سريعة للانتقال إلى الأقسام المختلفة
+ * يدير النافذة المنبثقة لاختيار المحل
+ */
 // اختصارات سريعة لانتقاء المحل قبل البيع/التسديد
 (function () {
   let nextAction = null; // 'sale' | 'payment'

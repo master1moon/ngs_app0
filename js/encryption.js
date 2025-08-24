@@ -1,11 +1,24 @@
 // مكتبة تشفير البيانات الحساسة
+
+/**
+ * نظام تشفير البيانات الحساسة
+ * يوفر تشفير بسيط باستخدام XOR وBase64
+ * يتعامل مع البيانات المالية والحساسة في التطبيق
+ * يدعم تشفير وفك تشفير الكائنات بالكامل
+ */
 (function() {
     'use strict';
 
     // مفتاح التشفير - في بيئة الإنتاج يجب أن يكون أكثر تعقيداً وأماناً
     const ENCRYPTION_KEY = 'NC-2024-SEC-KEY-' + window.location.hostname;
     
-    // إنشاء مفتاح مشتق بناءً على بيانات المستخدم
+    /**
+     * إنشاء مفتاح مشتق للتشفير
+     * يستخدم مفتاح أساسي مع salt لزيادة العشوائية
+     * ينشئ hash بسيط باستخدام العمليات الحسابية
+     * @param {string} salt - قيمة إضافية لتعزيز المفتاح
+     * @returns {string} مفتاح مشتق بصيغة base36
+     */
     function deriveKey(salt = '') {
         const baseKey = ENCRYPTION_KEY + salt;
         let hash = 0;
@@ -17,7 +30,14 @@
         return Math.abs(hash).toString(36);
     }
 
-    // تشفير بسيط باستخدام XOR وBase64
+    /**
+     * تشفير نص باستخدام XOR وBase64
+     * يطبق عملية XOR على كل حرف مع المفتاح
+     * يحول النتيجة إلى Base64 لتجنب مشاكل الترميز
+     * @param {string} text - النص المراد تشفيره
+     * @param {string} key - مفتاح التشفير
+     * @returns {string} النص المشفر بصيغة Base64
+     */
     function simpleEncrypt(text, key) {
         if (!text) return '';
         
@@ -36,7 +56,14 @@
         }
     }
 
-    // فك التشفير
+    /**
+     * فك تشفير نص مشفر بـ XOR وBase64
+     * يفك ترميز Base64 أولاً
+     * يطبق عملية XOR مرة أخرى للحصول على النص الأصلي
+     * @param {string} encryptedText - النص المشفر
+     * @param {string} key - مفتاح فك التشفير
+     * @returns {string} النص الأصلي
+     */
     function simpleDecrypt(encryptedText, key) {
         if (!encryptedText) return '';
         
@@ -57,7 +84,15 @@
         }
     }
 
-    // تشفير كائن كامل
+    /**
+     * تشفير كائن بالكامل أو حقول محددة
+     * يشفر الحقول الحساسة تلقائياً (الأسعار، المبالغ، إلخ)
+     * يدعم الكائنات والمصفوفات المتداخلة
+     * يضيف علامة للحقول المشفرة
+     * @param {Object|Array} obj - الكائن أو المصفوفة للتشفير
+     * @param {Array<string>} fieldsToEncrypt - حقول إضافية للتشفير
+     * @returns {Object|Array} الكائن المشفر
+     */
     function encryptObject(obj, fieldsToEncrypt = []) {
         if (!obj || typeof obj !== 'object') return obj;
         
@@ -105,7 +140,14 @@
         return encrypted;
     }
 
-    // فك تشفير كائن
+    /**
+     * فك تشفير كائن مشفر
+     * يفك تشفير جميع الحقول المشفرة في الكائن
+     * يحول القيم إلى أرقام إذا كانت أرقاماً في الأصل
+     * يزيل علامات التشفير من الحقول
+     * @param {Object|Array} obj - الكائن المشفر لفك تشفيره
+     * @returns {Object|Array} الكائن بعد فك التشفير
+     */
     function decryptObject(obj) {
         if (!obj || typeof obj !== 'object') return obj;
         
@@ -151,7 +193,15 @@
         return decrypted;
     }
 
-    // حفظ بيانات مشفرة في localStorage
+    /**
+     * حفظ بيانات مشفرة في localStorage
+     * يشفر البيانات قبل الحفظ
+     * يضيف توقيع للتحقق من سلامة البيانات
+     * يضيف طابع زمني للحفظ
+     * @param {string} key - مفتاح التخزين
+     * @param {*} data - البيانات المراد حفظها
+     * @returns {boolean} true إذا تم الحفظ بنجاح
+     */
     function saveEncrypted(key, data) {
         try {
             const encrypted = encryptObject(data);
@@ -173,7 +223,13 @@
         }
     }
 
-    // قراءة بيانات مشفرة من localStorage
+    /**
+     * قراءة بيانات مشفرة من localStorage
+     * يتحقق من سلامة البيانات بالتوقيع
+     * يفك تشفير البيانات ويعيدها
+     * @param {string} key - مفتاح التخزين
+     * @returns {*} البيانات بعد فك التشفير أو null
+     */
     function loadEncrypted(key) {
         try {
             const stored = localStorage.getItem(key);
@@ -195,13 +251,23 @@
         }
     }
 
-    // تشفير قيمة واحدة
+    /**
+     * تشفير قيمة واحدة (نص أو رقم)
+     * يستخدم مفتاح يومي للتشفير
+     * @param {*} value - القيمة المراد تشفيرها
+     * @returns {string} القيمة المشفرة
+     */
     function encryptValue(value) {
         const key = deriveKey(new Date().toDateString());
         return simpleEncrypt(String(value), key);
     }
 
-    // فك تشفير قيمة واحدة
+    /**
+     * فك تشفير قيمة واحدة
+     * يحول إلى رقم إذا كانت القيمة رقمية
+     * @param {string} encryptedValue - القيمة المشفرة
+     * @returns {*} القيمة بعد فك التشفير
+     */
     function decryptValue(encryptedValue) {
         const key = deriveKey(new Date().toDateString());
         const decrypted = simpleDecrypt(encryptedValue, key);
@@ -215,7 +281,11 @@
         return decrypted;
     }
 
-    // التحقق من دعم التشفير في المتصفح
+    /**
+     * التحقق من دعم التشفير في المتصفح
+     * يختبر دوال btoa وatob المطلوبة للتشفير
+     * @returns {boolean} true إذا كان التشفير مدعوماً
+     */
     function isEncryptionSupported() {
         try {
             // اختبار btoa و atob

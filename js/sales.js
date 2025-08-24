@@ -1,4 +1,12 @@
 // إدارة المبيعات
+
+/**
+ * فتح نموذج إضافة بيع جديد
+ * يملأ قائمة الباقات من البيانات المتاحة
+ * يسمح باختيار باقة أو إدخال مبلغ مخصص
+ * يتعامل مع الحقول المختلفة بناءً على نوع البيع
+ * @param {string} storeId - معرف المحل الذي سيتم إضافة البيع له
+ */
 function addSale(storeId) {
   const select = document.getElementById('salePackage');
   select.innerHTML = '';
@@ -25,6 +33,14 @@ function addSale(storeId) {
   const modal = new bootstrap.Modal(document.getElementById('saleModal')); modal.show();
 }
 
+/**
+ * حفظ بيانات البيع (إضافة جديد أو تحديث موجود)
+ * يتحقق من صحة البيانات المدخلة
+ * يحسب السعر بناءً على نوع سعر المحل (تجزئة، جملة، موزع)
+ * يخصم الكمية من المخزون للمبيعات غير المخصصة
+ * يتحقق من انخفاض المخزون ويعرض تحذيراً إذا لزم الأمر
+ * يحدث جميع الجداول والتقارير المتعلقة
+ */
 function saveSale() {
   const id = document.getElementById('saleId').value;
   const storeId = document.getElementById('saleStoreId').value;
@@ -73,6 +89,13 @@ function saveSale() {
   const modal = bootstrap.Modal.getInstance(document.getElementById('saleModal')); modal.hide();
 }
 
+/**
+ * فتح نموذج تعديل بيع موجود
+ * يملأ النموذج بالبيانات الحالية للبيع
+ * يتعامل مع نوعي البيع (باقة أو مخصص)
+ * يضبط ظهور الحقول بناءً على نوع البيع
+ * @param {string} id - معرف البيع المراد تعديله
+ */
 function editSale(id) {
   const sale = data.sales.find(s => s.id === id); if (!sale) return;
   const select = document.getElementById('salePackage');
@@ -104,6 +127,13 @@ function editSale(id) {
   const modal = new bootstrap.Modal(document.getElementById('saleModal')); modal.show();
 }
 
+/**
+ * حذف بيع من السجلات
+ * يطلب تأكيد من المستخدم قبل الحذف
+ * ينقل البيع المحذوف إلى سلة المحذوفات إذا كانت متاحة
+ * يحدث جميع الجداول والتقارير المتعلقة
+ * @param {string} id - معرف البيع المراد حذفه
+ */
 function deleteSale(id) {
   const sale = data.sales.find(s => s.id === id); if (!sale) return;
   if (!confirm('هل أنت متأكد من حذف هذا البيع؟')) return;
