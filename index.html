@@ -1428,6 +1428,9 @@
             trash: []
         };
         
+        // جعل البيانات متاحة عالمياً
+        window.data = data;
+        
         // تحويل أي أرقام عربية/فارسية إلى إنجليزية
         function toEnglishDigits(input) {
             if (input === null || input === undefined) return '';
@@ -1598,12 +1601,15 @@
                             payments: Array.isArray(parsedData.payments) ? parsedData.payments : [],
                             trash: Array.isArray(parsedData.trash) ? parsedData.trash : []
                         };
+                        // تحديث البيانات العامة
+                        window.data = data;
                         showNotification('تم تحميل البيانات بنجاح', 'success');
                     } else {
                         throw new Error('تنسيق البيانات غير صحيح');
                     }
                 } else {
                     // إذا لم توجد بيانات محفوظة، استخدم البيانات الافتراضية
+                    window.data = data;
                     showNotification('لا توجد بيانات محفوظة، سيتم استخدام بيانات جديدة', 'info');
                 }
             } catch (error) {
@@ -1619,6 +1625,7 @@
                     payments: [],
                     trash: []
                 };
+                window.data = data;
             }
             
             // تحديث جميع الواجهات
@@ -3588,8 +3595,44 @@
         // فتح صفحة الطباعة
         function openReportsPrintPage() {
             const printWindow = window.open('', '_blank');
-            const debtData = generateDebtReportData();
-            const profitData = generateProfitReportData();
+            
+            // التحقق من وجود البيانات
+            if (!window.data || !window.data.stores) {
+                printWindow.document.write('<h1 style="text-align: center; margin-top: 50px;">لا توجد بيانات لعرضها</h1>');
+                printWindow.document.close();
+                return;
+            }
+            
+            // إنشاء البيانات للتقرير
+            const debtData = window.data.stores.map(store => {
+                const storeSales = (window.data.sales || []).filter(s => s.storeId === store.id);
+                const storePayments = (window.data.payments || []).filter(p => p.storeId === store.id);
+                
+                const totalSales = storeSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+                const totalPayments = storePayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+                const remaining = totalSales - totalPayments;
+                
+                return {
+                    'اسم المحل': store.name || 'غير محدد',
+                    'إجمالي المبيعات': totalSales,
+                    'المدفوع': totalPayments,
+                    'المتبقي': remaining,
+                    'نوع السعر': store.priceType === 'retail' ? 'تجزئة' : 
+                                store.priceType === 'wholesale' ? 'جملة' : 
+                                store.priceType === 'distributor' ? 'موزعين' : 'غير معروف'
+                };
+            });
+            
+            const totalSales = (window.data.sales || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
+            const totalPaymentsSum = (window.data.payments || []).reduce((sum, payment) => sum + (payment.amount || 0), 0);
+            const totalExpenses = (window.data.expenses || []).reduce((sum, expense) => sum + (expense.amount || 0), 0);
+            const netProfit = totalPaymentsSum - totalExpenses;
+            
+            const profitData = [{
+                'إجمالي المبيعات': totalSales,
+                'إجمالي المصروفات': totalExpenses,
+                'صافي الربح': netProfit
+            }];
             
             // دالة تنسيق الأرقام للاستخدام في صفحة الطباعة
             function formatNum(num) {
@@ -3679,11 +3722,9 @@
                     
                     <h2>تقرير الأرباح والخسائر</h2>
                     <div class="summary">
-                        ${profitData.map(row => `
-                            <p><strong>إجمالي المبيعات:</strong> ${formatNum(row['إجمالي المبيعات'])} ريال</p>
-                            <p><strong>إجمالي المصروفات:</strong> ${formatNum(row['إجمالي المصروفات'])} ريال</p>
-                            <p><strong>صافي الربح:</strong> <span class="${row['صافي الربح'] >= 0 ? 'text-success' : 'text-danger'}">${formatNum(row['صافي الربح'])} ريال</span></p>
-                        `).join('')}
+                        <p><strong>إجمالي المبيعات:</strong> ${formatNum(totalSales)} ريال</p>
+                        <p><strong>إجمالي المصروفات:</strong> ${formatNum(totalExpenses)} ريال</p>
+                        <p><strong>صافي الربح:</strong> <span class="${netProfit >= 0 ? 'text-success' : 'text-danger'}">${formatNum(netProfit)} ريال</span></p>
                     </div>
                     
                     <div style="margin-top: 50px; text-align: center; color: #7f8c8d;">
