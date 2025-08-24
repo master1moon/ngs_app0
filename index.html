@@ -3497,9 +3497,205 @@
                 URL.revokeObjectURL(url);
                 
                 showNotification('تم تصدير التقارير إلى ملف TXT', 'success');
+            } else if (format === 'pdf') {
+                // تصدير PDF
+                generateReportsPDF();
+            } else if (format === 'printpage') {
+                // فتح صفحة الطباعة
+                openReportsPrintPage();
             }
+                }
+        
+        // توليد PDF للتقارير
+        function generateReportsPDF() {
+            const element = document.createElement('div');
+            element.style.padding = '20px';
+            element.style.fontFamily = 'Arial, sans-serif';
+            element.style.direction = 'rtl';
+            
+            // العنوان الرئيسي
+            element.innerHTML = `
+                <h1 style="text-align: center; color: #2c3e50;">التقارير المالية</h1>
+                <p style="text-align: center; color: #7f8c8d;">تاريخ التقرير: ${moment().format('YYYY-MM-DD')}</p>
+                <hr style="margin: 20px 0;">
+            `;
+            
+            // تقرير الديون
+            const debtData = generateDebtReportData();
+            element.innerHTML += `
+                <h2 style="color: #e74c3c;">تقرير الديون</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                    <thead>
+                        <tr style="background-color: #ecf0f1;">
+                            <th style="border: 1px solid #bdc3c7; padding: 10px;">اسم المحل</th>
+                            <th style="border: 1px solid #bdc3c7; padding: 10px;">إجمالي المبيعات</th>
+                            <th style="border: 1px solid #bdc3c7; padding: 10px;">المدفوع</th>
+                            <th style="border: 1px solid #bdc3c7; padding: 10px;">المتبقي</th>
+                            <th style="border: 1px solid #bdc3c7; padding: 10px;">نوع السعر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${debtData.map(row => `
+                            <tr>
+                                <td style="border: 1px solid #bdc3c7; padding: 8px;">${row['اسم المحل']}</td>
+                                <td style="border: 1px solid #bdc3c7; padding: 8px;">${formatNumber(row['إجمالي المبيعات'])}</td>
+                                <td style="border: 1px solid #bdc3c7; padding: 8px;">${formatNumber(row['المدفوع'])}</td>
+                                <td style="border: 1px solid #bdc3c7; padding: 8px; color: ${row['المتبقي'] > 0 ? '#e74c3c' : '#27ae60'};">${formatNumber(row['المتبقي'])}</td>
+                                <td style="border: 1px solid #bdc3c7; padding: 8px;">${row['نوع السعر']}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            // تقرير الأرباح
+            const profitData = generateProfitReportData();
+            element.innerHTML += `
+                <h2 style="color: #27ae60;">تقرير الأرباح والخسائر</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+                    <tbody>
+                        ${profitData.map(row => `
+                            <tr>
+                                <td style="border: 1px solid #bdc3c7; padding: 10px; font-weight: bold;">إجمالي المبيعات</td>
+                                <td style="border: 1px solid #bdc3c7; padding: 10px;">${formatNumber(row['إجمالي المبيعات'])}</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #bdc3c7; padding: 10px; font-weight: bold;">إجمالي المصروفات</td>
+                                <td style="border: 1px solid #bdc3c7; padding: 10px;">${formatNumber(row['إجمالي المصروفات'])}</td>
+                            </tr>
+                            <tr style="background-color: #ecf0f1;">
+                                <td style="border: 1px solid #bdc3c7; padding: 10px; font-weight: bold;">صافي الربح</td>
+                                <td style="border: 1px solid #bdc3c7; padding: 10px; color: ${row['صافي الربح'] >= 0 ? '#27ae60' : '#e74c3c'}; font-weight: bold;">${formatNumber(row['صافي الربح'])}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            // تحويل إلى PDF
+            const opt = {
+                margin: 10,
+                filename: `التقارير_${moment().format('YYYYMMDD')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            html2pdf().set(opt).from(element).save();
+            showNotification('جاري إنشاء ملف PDF...', 'info');
         }
-
+        
+        // فتح صفحة الطباعة
+        function openReportsPrintPage() {
+            const printWindow = window.open('', '_blank');
+            const debtData = generateDebtReportData();
+            const profitData = generateProfitReportData();
+            
+            const html = `
+                <!DOCTYPE html>
+                <html lang="ar" dir="rtl">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>التقارير المالية - ${moment().format('YYYY-MM-DD')}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            direction: rtl;
+                            padding: 20px;
+                            line-height: 1.6;
+                        }
+                        h1, h2 {
+                            text-align: center;
+                            color: #2c3e50;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin: 20px 0;
+                        }
+                        th, td {
+                            border: 1px solid #ddd;
+                            padding: 8px;
+                            text-align: right;
+                        }
+                        th {
+                            background-color: #f4f4f4;
+                            font-weight: bold;
+                        }
+                        .text-danger {
+                            color: #e74c3c;
+                        }
+                        .text-success {
+                            color: #27ae60;
+                        }
+                        .summary {
+                            background-color: #f9f9f9;
+                            padding: 15px;
+                            margin: 20px 0;
+                            border-radius: 5px;
+                        }
+                        @media print {
+                            body {
+                                padding: 10px;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>التقارير المالية</h1>
+                    <p style="text-align: center; color: #7f8c8d;">تاريخ التقرير: ${moment().format('YYYY-MM-DD HH:mm')}</p>
+                    <hr>
+                    
+                    <h2>تقرير الديون</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>اسم المحل</th>
+                                <th>إجمالي المبيعات</th>
+                                <th>المدفوع</th>
+                                <th>المتبقي</th>
+                                <th>نوع السعر</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${debtData.map(row => `
+                                <tr>
+                                    <td>${row['اسم المحل']}</td>
+                                    <td>${formatNumber(row['إجمالي المبيعات'])}</td>
+                                    <td>${formatNumber(row['المدفوع'])}</td>
+                                    <td class="${row['المتبقي'] > 0 ? 'text-danger' : 'text-success'}">${formatNumber(row['المتبقي'])}</td>
+                                    <td>${row['نوع السعر']}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <h2>تقرير الأرباح والخسائر</h2>
+                    <div class="summary">
+                        ${profitData.map(row => `
+                            <p><strong>إجمالي المبيعات:</strong> ${formatNumber(row['إجمالي المبيعات'])} ريال</p>
+                            <p><strong>إجمالي المصروفات:</strong> ${formatNumber(row['إجمالي المصروفات'])} ريال</p>
+                            <p><strong>صافي الربح:</strong> <span class="${row['صافي الربح'] >= 0 ? 'text-success' : 'text-danger'}">${formatNumber(row['صافي الربح'])} ريال</span></p>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="margin-top: 50px; text-align: center; color: #7f8c8d;">
+                        <p>تم إنشاء هذا التقرير بواسطة نظام إدارة المبيعات</p>
+                    </div>
+                    
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                        };
+                    </script>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(html);
+            printWindow.document.close();
+        }
+        
         // توليد بيانات تقرير الديون
         function generateDebtReportData() {
             return data.stores.map(store => {
