@@ -74,7 +74,7 @@ function updateProfitReport() {
   const totalPaymentsSum = filteredPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
   const totalPaymentsEl = document.getElementById('totalPaymentsReport');
   if (totalPaymentsEl) totalPaymentsEl.textContent = formatNumber(totalPaymentsSum);
-  const filteredExpenses = (data.expenses || []).filter(e => inPeriod(e.date, fromDate, toDate));
+  const filteredExpenses = (data.expenses || []).filter(e => inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
   const totalExpensesEl = document.getElementById('totalExpensesReport');
   if (totalExpensesEl) totalExpensesEl.textContent = formatNumber(totalExpenses);
@@ -782,47 +782,17 @@ const renderedEntities = new Set();
 
 function renderReportsAccordingToSelection(){
   const sel = document.getElementById('reportsSectionFilter');
-  const section = sel ? sel.value : 'all';
+  const section = sel ? sel.value : 'payments';
   
-  // إخفاء/إظهار البطاقات حسب الاختيار
-  const allCards = document.querySelectorAll('.card[id$="ReportCard"]');
-  
-  allCards.forEach(card => {
-    if (section === 'all') {
-      card.style.display = '';
-    } else {
-      // إخفاء جميع البطاقات
-      card.style.display = 'none';
-      
-      // إظهار البطاقات المتعلقة بالقسم المختار
-      if (section === 'debts' && card.id === 'debtsReportCard') {
-        card.style.display = '';
-      }
-      // البطاقات الأخرى تبقى مرئية دائماً (الأرباح والمقارنة والشركاء)
-      if (['profitReportCard', 'comparisonReportCard', 'partnerReportsCard', 'quickSummariesCard'].includes(card.id)) {
-        card.style.display = '';
-      }
-    }
-  });
+  // هذه الدالة كانت تستدعي renderDetailedReport التي لم تعد موجودة
+  // حالياً لا تفعل شيئاً لأن التقارير التفصيلية غير متوفرة
+  console.log('تم اختيار القسم:', section);
 }
 
 function setupReportsLazyObserver(){
-  const map = new Map([
-    ['paymentsReportCard','payments'],
-    ['expensesReportCard','expenses'],
-    ['salesReportCard','sales'],
-    ['debtsReportCardDetails','debts']
-  ]);
-  if (!('IntersectionObserver' in window)) return;
-  const observer = new IntersectionObserver((entries)=>{
-    entries.forEach(entry=>{
-      if (entry.isIntersecting) {
-        const id = entry.target.id; const ent = map.get(id);
-        if (ent && !renderedEntities.has(ent)) { renderDetailedReport(ent); renderedEntities.add(ent); }
-      }
-    });
-  }, { root: null, rootMargin: '0px', threshold: 0.1 });
-  map.forEach((_, cardId)=>{ const el = document.getElementById(cardId); if (el) observer.observe(el); });
+  // هذه الدالة كانت تستخدم IntersectionObserver لتحميل التقارير عند الحاجة
+  // حالياً معطلة لأن renderDetailedReport غير موجودة
+  return;
 }
 
 function __populateReportsStores(){
@@ -863,9 +833,8 @@ function initReportsControls(){
 	if (periodSel && !periodSel.dataset._wired){ periodSel.addEventListener('change', ()=>{ __syncReportsCustomVisibility(); if (periodSel.value !== 'custom') __reRenderReports(); }); periodSel.dataset._wired='1'; }
 	if (applyBtn && !applyBtn.dataset._wired){ applyBtn.addEventListener('click', ()=>{ __reRenderReports(); }); applyBtn.dataset._wired='1'; }
 	if (storeSel && !storeSel.dataset._wired){ storeSel.addEventListener('change', ()=>{ __reRenderReports(); }); storeSel.dataset._wired='1'; }
-	if (sectionSel && !sectionSel.dataset._wired){ sectionSel.addEventListener('change', ()=>{ renderReportsAccordingToSelection(); __reRenderReports(); }); sectionSel.dataset._wired='1'; }
+	if (sectionSel && !sectionSel.dataset._wired){ sectionSel.addEventListener('change', ()=>{ /* فقط لإظهار/إخفاء البطاقات إن لزم مستقبلًا */ __reRenderReports(); }); sectionSel.dataset._wired='1'; }
 	__reRenderReports();
-	renderReportsAccordingToSelection();
 }
 
 if (typeof window !== 'undefined'){
