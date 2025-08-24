@@ -46,16 +46,58 @@ function parseFormattedNumber(str) {
  */
 function formatDateEn(dateStr) {
   if (!dateStr) return '';
-  const raw = toEnglishDigits(dateStr).slice(0, 10);
+  
+  // تحويل الأرقام العربية إلى إنجليزية
+  const englishDate = toEnglishDigits(dateStr);
+  
   try {
     if (typeof moment !== 'undefined') {
-      const m = moment(raw, [moment.ISO_8601, 'YYYY-MM-DD', 'YYYY-M-D', 'DD/MM/YYYY', 'D/M/YYYY'], true);
-      if (m.isValid()) return m.format('YYYY-MM-DD');
+      // جرب صيغ مختلفة للتاريخ
+      const formats = [
+        'YYYY-MM-DD',
+        'YYYY-M-D',
+        'DD/MM/YYYY',
+        'D/M/YYYY',
+        'DD-MM-YYYY',
+        'D-M-YYYY',
+        moment.ISO_8601
+      ];
+      
+      const m = moment(englishDate, formats, true);
+      if (m.isValid()) {
+        return m.format('YYYY-MM-DD');
+      }
     }
   } catch (_) {}
-  // fallback: simple cleanup
-  const m = /^\d{4}-\d{1,2}-\d{1,2}$/.test(raw) ? raw : raw.replace(/\D/g, '').replace(/(\d{4})(\d{2})(\d{2}).*/, '$1-$2-$3');
-  return m;
+  
+  // إذا فشل moment.js، حاول التحليل اليدوي
+  // التحقق من الصيغ المختلفة
+  const patterns = {
+    'YYYY-MM-DD': /^(\d{4})-(\d{1,2})-(\d{1,2})$/,
+    'DD/MM/YYYY': /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
+    'DD-MM-YYYY': /^(\d{1,2})-(\d{1,2})-(\d{4})$/
+  };
+  
+  for (const [format, pattern] of Object.entries(patterns)) {
+    const match = englishDate.match(pattern);
+    if (match) {
+      if (format === 'YYYY-MM-DD') {
+        return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+      } else {
+        // DD/MM/YYYY أو DD-MM-YYYY
+        return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+      }
+    }
+  }
+  
+  // إذا لم تتطابق أي صيغة، حاول تنظيف بسيط
+  const cleanDate = englishDate.replace(/\D/g, '');
+  if (cleanDate.length === 8) {
+    // افترض DDMMYYYY
+    return `${cleanDate.substr(4, 4)}-${cleanDate.substr(2, 2)}-${cleanDate.substr(0, 2)}`;
+  }
+  
+  return englishDate;
 }
 
 /**
@@ -171,10 +213,8 @@ document.addEventListener('DOMContentLoaded', function(){
     inp.setAttribute('lang', 'en');
     inp.style.direction = 'ltr';
     inp.placeholder = 'YYYY-MM-DD';
-    // عند الإدخال/التغيير: طبيعـة التاريخ إلى أرقام إنجليزية وصيغة موحّدة
-    const normalize = () => { if (inp.value) inp.value = formatDateEn(inp.value); };
-    inp.addEventListener('change', normalize);
-    inp.addEventListener('blur', normalize);
+    // لا نحتاج لتطبيع التاريخ هنا لأن حقول date تتعامل مع صيغة YYYY-MM-DD تلقائياً
+    // إزالة مستمعي الأحداث التي قد تغير القيمة بشكل غير مرغوب
   });
 });
 

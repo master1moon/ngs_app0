@@ -48,7 +48,7 @@ function saveSale() {
   const reason = document.getElementById('saleReason').value;
   const quantity = parseFormattedNumber(document.getElementById('saleQuantity').value) || 0;
   const amount = parseFormattedNumber(document.getElementById('saleAmount').value) || 0;
-  const date = document.getElementById('saleDate').value || today;
+  const date = document.getElementById('saleDate').value ? formatDateEn(document.getElementById('saleDate').value) : today;
   if (!storeId || (!packageId && !reason)) { showNotification('يرجى ملء جميع الحقول المطلوبة', 'error'); return; }
   const isCustom = packageId === 'custom';
   const store = data.stores.find(s => s.id === storeId);

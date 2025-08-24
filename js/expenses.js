@@ -63,7 +63,7 @@ function saveExpense() {
   const type = document.getElementById('expenseType').value;
   const amount = parseFormattedNumber(document.getElementById('expenseAmount').value) || 0;
   const notes = document.getElementById('expenseNotes').value;
-  const date = formatDateEn(document.getElementById('expenseDate').value || today);
+  const date = document.getElementById('expenseDate').value ? formatDateEn(document.getElementById('expenseDate').value) : today;
   const addLater = document.getElementById('addLater').checked;
   if (!type) { showNotification('يرجى إدخال نوع المصروف', 'error'); return; }
   if (id) {

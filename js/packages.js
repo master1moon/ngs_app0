@@ -179,7 +179,7 @@ function savePackage() {
   const retailPrice = parseFormattedNumber(document.getElementById('retailPrice').value) || null;
   const wholesalePrice = parseFormattedNumber(document.getElementById('wholesalePrice').value) || null;
   const distributorPrice = parseFormattedNumber(document.getElementById('distributorPrice').value) || null;
-  const date = document.getElementById('packageDate').value || today;
+  const date = document.getElementById('packageDate').value ? formatDateEn(document.getElementById('packageDate').value) : today;
   if (!name) { showNotification('يرجى إدخال اسم الباقة', 'error'); return; }
   if (id) {
     const pkg = data.packages.find(p => p.id === id);
