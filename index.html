@@ -3961,15 +3961,17 @@
             // تهيئة حقول الإدخال المنسقة
             setupFormattedInputs();
             
-            // تغيير الأقسام
-            const navLinks = document.querySelectorAll('.sidebar .nav-link');
-            const sections = document.querySelectorAll('.section');
-            
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetSection = this.getAttribute('data-section');
-                    switchSection(targetSection, this.textContent.trim());
+            // تغيير الأقسام - نقل إلى داخل DOMContentLoaded
+            document.addEventListener('DOMContentLoaded', function() {
+                const navLinks = document.querySelectorAll('.sidebar .nav-link');
+                const sections = document.querySelectorAll('.section');
+                
+                navLinks.forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const targetSection = this.getAttribute('data-section');
+                        switchSection(targetSection, this.textContent.trim());
+                    });
                 });
             });
             
