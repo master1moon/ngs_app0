@@ -204,13 +204,28 @@ function exportPartnerReport() {
 }
 
 function updateReportStores() {
-  const select = document.getElementById('reportStoreSelect');
+  // البحث عن العنصر الصحيح reportsStoreFilter بدلاً من reportStoreSelect
+  const select = document.getElementById('reportsStoreFilter');
   if (!select) return;
+  
+  // حفظ القيمة الحالية
+  const currentValue = select.value;
+  
+  // مسح الخيارات الحالية باستثناء "جميع المحلات"
   while (select.options.length > 1) select.remove(1);
+  
+  // إضافة المحلات
   data.stores.forEach(store => {
     const option = document.createElement('option');
-    option.value = store.id; option.textContent = store.name; select.appendChild(option);
+    option.value = store.id; 
+    option.textContent = store.name; 
+    select.appendChild(option);
   });
+  
+  // استعادة القيمة المحددة إذا كانت لا تزال موجودة
+  if (currentValue && [...select.options].some(opt => opt.value === currentValue)) {
+    select.value = currentValue;
+  }
 }
 
 function generateDebtReport() {
