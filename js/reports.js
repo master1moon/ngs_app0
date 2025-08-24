@@ -50,8 +50,6 @@ function getPriceTypeName(priceType) {
 function isStoreMatch(item) {
   const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
   if (storeFilter === 'all') return true;
-  // المصروفات ليست مرتبطة بمحل معين، لذا نعرضها دائماً
-  if (item.amount && !item.storeId && !item.packageId) return true;
   return String(item.storeId || '') === String(storeFilter);
 }
 
@@ -76,7 +74,7 @@ function updateProfitReport() {
   const totalPaymentsSum = filteredPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
   const totalPaymentsEl = document.getElementById('totalPaymentsReport');
   if (totalPaymentsEl) totalPaymentsEl.textContent = formatNumber(totalPaymentsSum);
-  const filteredExpenses = (data.expenses || []).filter(e => inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
+  const filteredExpenses = (data.expenses || []).filter(e => inPeriod(e.date, fromDate, toDate));
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
   const totalExpensesEl = document.getElementById('totalExpensesReport');
   if (totalExpensesEl) totalExpensesEl.textContent = formatNumber(totalExpenses);
@@ -784,16 +782,28 @@ const renderedEntities = new Set();
 
 function renderReportsAccordingToSelection(){
   const sel = document.getElementById('reportsSectionFilter');
-  const section = sel ? sel.value : 'payments';
-  const entities = ['payments','expenses','sales','debts'];
-  if (section !== 'all') {
-    renderDetailedReport(section);
-    renderedEntities.add(section);
-  } else {
-    // Ensure at least payments is rendered
-    if (!renderedEntities.has('payments')) { renderDetailedReport('payments'); renderedEntities.add('payments'); }
-    entities.forEach(ent => { if (renderedEntities.has(ent)) renderDetailedReport(ent); });
-  }
+  const section = sel ? sel.value : 'all';
+  
+  // إخفاء/إظهار البطاقات حسب الاختيار
+  const allCards = document.querySelectorAll('.card[id$="ReportCard"]');
+  
+  allCards.forEach(card => {
+    if (section === 'all') {
+      card.style.display = '';
+    } else {
+      // إخفاء جميع البطاقات
+      card.style.display = 'none';
+      
+      // إظهار البطاقات المتعلقة بالقسم المختار
+      if (section === 'debts' && card.id === 'debtsReportCard') {
+        card.style.display = '';
+      }
+      // البطاقات الأخرى تبقى مرئية دائماً (الأرباح والمقارنة والشركاء)
+      if (['profitReportCard', 'comparisonReportCard', 'partnerReportsCard', 'quickSummariesCard'].includes(card.id)) {
+        card.style.display = '';
+      }
+    }
+  });
 }
 
 function setupReportsLazyObserver(){
@@ -835,37 +845,6 @@ function __syncReportsCustomVisibility(){
 
 function __reRenderReports(){
 	try {
-		// تطبيق فلتر القسم على البطاقات
-		const sectionFilter = document.getElementById('reportsSectionFilter')?.value || 'all';
-		
-		// قائمة البطاقات حسب القسم
-		const cardsBySection = {
-			'sales': ['salesReportCard'],
-			'payments': ['paymentsReportCard'],
-			'expenses': ['expensesReportCard'],
-			'debts': ['debtsReportCard'],
-			'all': null // null يعني إظهار الكل
-		};
-		
-		// إخفاء/إظهار البطاقات حسب الفلتر
-		const allCards = ['salesReportCard', 'paymentsReportCard', 'expensesReportCard', 
-		                  'debtsReportCard', 'profitReportCard', 'comparisonReportCard', 
-		                  'partnerReportsCard'];
-		
-		allCards.forEach(cardId => {
-			const card = document.getElementById(cardId);
-			if (card) {
-				if (sectionFilter === 'all') {
-					card.style.display = '';
-				} else if (cardsBySection[sectionFilter]) {
-					card.style.display = cardsBySection[sectionFilter].includes(cardId) ? '' : 'none';
-				} else {
-					card.style.display = '';
-				}
-			}
-		});
-		
-		// تحديث التقارير
 		updateProfitReport();
 		generateDebtReport();
 		generatePartnerReports();
@@ -884,8 +863,9 @@ function initReportsControls(){
 	if (periodSel && !periodSel.dataset._wired){ periodSel.addEventListener('change', ()=>{ __syncReportsCustomVisibility(); if (periodSel.value !== 'custom') __reRenderReports(); }); periodSel.dataset._wired='1'; }
 	if (applyBtn && !applyBtn.dataset._wired){ applyBtn.addEventListener('click', ()=>{ __reRenderReports(); }); applyBtn.dataset._wired='1'; }
 	if (storeSel && !storeSel.dataset._wired){ storeSel.addEventListener('change', ()=>{ __reRenderReports(); }); storeSel.dataset._wired='1'; }
-	if (sectionSel && !sectionSel.dataset._wired){ sectionSel.addEventListener('change', ()=>{ /* فقط لإظهار/إخفاء البطاقات إن لزم مستقبلًا */ __reRenderReports(); }); sectionSel.dataset._wired='1'; }
+	if (sectionSel && !sectionSel.dataset._wired){ sectionSel.addEventListener('change', ()=>{ renderReportsAccordingToSelection(); __reRenderReports(); }); sectionSel.dataset._wired='1'; }
 	__reRenderReports();
+	renderReportsAccordingToSelection();
 }
 
 if (typeof window !== 'undefined'){
