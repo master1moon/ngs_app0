@@ -3591,12 +3591,19 @@
             const debtData = generateDebtReportData();
             const profitData = generateProfitReportData();
             
+            // دالة تنسيق الأرقام للاستخدام في صفحة الطباعة
+            function formatNum(num) {
+                if (num === null || num === undefined) return '0';
+                const n = Number(num) || 0;
+                return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            }
+            
             const html = `
                 <!DOCTYPE html>
                 <html lang="ar" dir="rtl">
                 <head>
                     <meta charset="UTF-8">
-                    <title>التقارير المالية - ${moment().format('YYYY-MM-DD')}</title>
+                    <title>التقارير المالية - ${new Date().toISOString().slice(0, 10)}</title>
                     <style>
                         body {
                             font-family: Arial, sans-serif;
@@ -3643,7 +3650,7 @@
                 </head>
                 <body>
                     <h1>التقارير المالية</h1>
-                    <p style="text-align: center; color: #7f8c8d;">تاريخ التقرير: ${moment().format('YYYY-MM-DD HH:mm')}</p>
+                    <p style="text-align: center; color: #7f8c8d;">تاريخ التقرير: ${new Date().toISOString().slice(0, 16).replace('T', ' ')}</p>
                     <hr>
                     
                     <h2>تقرير الديون</h2>
@@ -3661,9 +3668,9 @@
                             ${debtData.map(row => `
                                 <tr>
                                     <td>${row['اسم المحل']}</td>
-                                    <td>${formatNumber(row['إجمالي المبيعات'])}</td>
-                                    <td>${formatNumber(row['المدفوع'])}</td>
-                                    <td class="${row['المتبقي'] > 0 ? 'text-danger' : 'text-success'}">${formatNumber(row['المتبقي'])}</td>
+                                    <td>${formatNum(row['إجمالي المبيعات'])}</td>
+                                    <td>${formatNum(row['المدفوع'])}</td>
+                                    <td class="${row['المتبقي'] > 0 ? 'text-danger' : 'text-success'}">${formatNum(row['المتبقي'])}</td>
                                     <td>${row['نوع السعر']}</td>
                                 </tr>
                             `).join('')}
@@ -3673,9 +3680,9 @@
                     <h2>تقرير الأرباح والخسائر</h2>
                     <div class="summary">
                         ${profitData.map(row => `
-                            <p><strong>إجمالي المبيعات:</strong> ${formatNumber(row['إجمالي المبيعات'])} ريال</p>
-                            <p><strong>إجمالي المصروفات:</strong> ${formatNumber(row['إجمالي المصروفات'])} ريال</p>
-                            <p><strong>صافي الربح:</strong> <span class="${row['صافي الربح'] >= 0 ? 'text-success' : 'text-danger'}">${formatNumber(row['صافي الربح'])} ريال</span></p>
+                            <p><strong>إجمالي المبيعات:</strong> ${formatNum(row['إجمالي المبيعات'])} ريال</p>
+                            <p><strong>إجمالي المصروفات:</strong> ${formatNum(row['إجمالي المصروفات'])} ريال</p>
+                            <p><strong>صافي الربح:</strong> <span class="${row['صافي الربح'] >= 0 ? 'text-success' : 'text-danger'}">${formatNum(row['صافي الربح'])} ريال</span></p>
                         `).join('')}
                     </div>
                     
@@ -3698,16 +3705,20 @@
         
         // توليد بيانات تقرير الديون
         function generateDebtReportData() {
+            if (!data || !data.stores || data.stores.length === 0) {
+                return [];
+            }
+            
             return data.stores.map(store => {
-                const storeSales = data.sales.filter(s => s.storeId === store.id);
-                const storePayments = data.payments.filter(p => p.storeId === store.id);
+                const storeSales = (data.sales || []).filter(s => s.storeId === store.id);
+                const storePayments = (data.payments || []).filter(p => p.storeId === store.id);
                 
-                const totalSales = storeSales.reduce((sum, sale) => sum + sale.total, 0);
-                const totalPayments = storePayments.reduce((sum, payment) => sum + payment.amount, 0);
+                const totalSales = storeSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+                const totalPayments = storePayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
                 const remaining = totalSales - totalPayments;
                 
                 return {
-                    'اسم المحل': store.name,
+                    'اسم المحل': store.name || 'غير محدد',
                     'إجمالي المبيعات': totalSales,
                     'المدفوع': totalPayments,
                     'المتبقي': remaining,
@@ -3718,9 +3729,17 @@
         
         // توليد بيانات تقرير الأرباح
         function generateProfitReportData() {
-            const totalSales = data.sales.reduce((sum, sale) => sum + sale.total, 0);
-            const totalPaymentsSum = data.payments.reduce((sum, payment) => sum + payment.amount, 0);
-            const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            if (!data) {
+                return [{
+                    'إجمالي المبيعات': 0,
+                    'إجمالي المصروفات': 0,
+                    'صافي الربح': 0
+                }];
+            }
+            
+            const totalSales = (data.sales || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
+            const totalPaymentsSum = (data.payments || []).reduce((sum, payment) => sum + (payment.amount || 0), 0);
+            const totalExpenses = (data.expenses || []).reduce((sum, expense) => sum + (expense.amount || 0), 0);
             const netProfit = totalPaymentsSum - totalExpenses;
             
             return [{
