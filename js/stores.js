@@ -253,13 +253,27 @@ function showStoreDetails(storeId) {
   const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const balance = totalSales - totalPayments;
   
-  // عرض معلومات الهاتف إذا كانت موجودة
+  // عرض معلومات الهاتف إذا كانت موجودة مع خيارات التواصل
   const phoneInfo = store.phone ? 
     `<div class="col-md-4">
       <div class="info-card">
         <i class="fas fa-phone-alt text-info mb-2"></i>
         <h6>رقم الهاتف</h6>
-        <p class="mb-0">${store.phone}</p>
+        <p class="mb-0 h5">${store.phone}</p>
+        <div class="btn-group btn-group-sm mt-2 w-100" role="group">
+          <button class="btn btn-outline-primary" onclick="makePhoneCall('${store.phone}')" title="اتصال">
+            <i class="fas fa-phone"></i>
+          </button>
+          <button class="btn btn-outline-success" onclick="sendBalanceSMS('${store.phone}', ${balance}, '${store.name}')" title="رسالة الرصيد">
+            <i class="fas fa-sms"></i>
+          </button>
+          <button class="btn btn-outline-info" onclick="sendDetailsSMS('${storeId}')" title="رسالة التفاصيل">
+            <i class="fas fa-envelope"></i>
+          </button>
+          <button class="btn btn-outline-success" onclick="shareViaWhatsApp('${storeId}')" title="مشاركة واتساب">
+            <i class="fab fa-whatsapp"></i>
+          </button>
+        </div>
       </div>
     </div>` : '';
   
