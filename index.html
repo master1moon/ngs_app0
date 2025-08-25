@@ -1700,24 +1700,28 @@
         // حفظ البيانات إلى localStorage
         function saveData() {
             try {
+                // استخدام window.data مباشرة للتأكد من حفظ البيانات الصحيحة
+                const dataToSave = window.data || data;
+                
                 // التحقق من صحة البيانات قبل الحفظ
-                if (!data || typeof data !== 'object') {
+                if (!dataToSave || typeof dataToSave !== 'object') {
                     throw new Error('البيانات غير صحيحة');
                 }
                 
                 // التأكد من وجود جميع الخصائص المطلوبة
                 const validData = {
-                    packages: Array.isArray(data.packages) ? data.packages : [],
-                    inventory: Array.isArray(data.inventory) ? data.inventory : [],
-                    stores: Array.isArray(data.stores) ? data.stores : [],
-                    expenses: Array.isArray(data.expenses) ? data.expenses : [],
-                    sales: Array.isArray(data.sales) ? data.sales : [],
-                    payments: Array.isArray(data.payments) ? data.payments : [],
-                    trash: Array.isArray(data.trash) ? data.trash : []
+                    packages: Array.isArray(dataToSave.packages) ? dataToSave.packages : [],
+                    inventory: Array.isArray(dataToSave.inventory) ? dataToSave.inventory : [],
+                    stores: Array.isArray(dataToSave.stores) ? dataToSave.stores : [],
+                    expenses: Array.isArray(dataToSave.expenses) ? dataToSave.expenses : [],
+                    sales: Array.isArray(dataToSave.sales) ? dataToSave.sales : [],
+                    payments: Array.isArray(dataToSave.payments) ? dataToSave.payments : [],
+                    trash: Array.isArray(dataToSave.trash) ? dataToSave.trash : []
                 };
                 
                 // تحديث الكائن الأصلي بالبيانات الصحيحة
                 data = validData;
+                window.data = validData;
                 
                 // حفظ البيانات بالتشفير إذا كان متاحاً
                 let saved = false;
@@ -3624,6 +3628,8 @@
                                 payments: toArraySafe(importedData.payments),
                                 trash: toArraySafe(importedData.trash)
                             };
+                            // تحديث المتغير العام
+                            window.data = data;
                             console.log('تم استبدال البيانات:', data);
                         } else {
                             // دمج فريد حسب المعرّف لكل نوع
@@ -3634,6 +3640,8 @@
                             data.sales = mergeUniqueById(data.sales, importedData.sales);
                             data.payments = mergeUniqueById(data.payments, importedData.payments);
                             data.trash = mergeUniqueById(data.trash, importedData.trash);
+                            // تحديث المتغير العام
+                            window.data = data;
                         }
                     } else {
                         // التعامل مع استيراد نوع واحد من البيانات
@@ -3660,15 +3668,31 @@
                         
                         if (replace) {
                             data[dataType] = incoming;
+                            // تحديث المتغير العام
+                            window.data = data;
                             console.log(`تم استبدال ${dataType}:`, incoming);
                         } else {
                             data[dataType] = mergeUniqueById(data[dataType], incoming);
+                            // تحديث المتغير العام
+                            window.data = data;
                             console.log(`تم دمج ${dataType}:`, data[dataType]);
                         }
                     }
                     
                     console.log('البيانات قبل الحفظ:', data);
+                    console.log('window.data قبل الحفظ:', window.data);
+                    
+                    // التأكد من أن البيانات محدثة قبل الحفظ
+                    if (window.data !== data) {
+                        console.warn('تحذير: window.data غير متزامن مع data');
+                        window.data = data;
+                    }
+                    
                     saveData();
+                    
+                    // التحقق من البيانات بعد الحفظ
+                    console.log('البيانات بعد الحفظ:', window.data);
+                    
                     showNotification('تم استيراد البيانات بنجاح (تمت إزالة التكرارات)', 'success');
                     
                     // تحديث الواجهة
