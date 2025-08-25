@@ -63,7 +63,7 @@ function updateProfitReport() {
     return;
   }
   
-  const { fromDate, toDate } = getPeriodRange();
+  const { fromDate, toDate } = getPeriodRange('profit');
   const filteredSales = (data.sales || []).filter(s => inPeriod(s.date, fromDate, toDate) && isStoreMatch(s));
   const totalSales = filteredSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
   const totalSalesEl = document.getElementById('totalSalesReport');
@@ -209,7 +209,7 @@ function generateDebtReport() {
   const table = document.getElementById('debtReportTable');
   if (!table) return;
   table.innerHTML = '';
-  const { fromDate, toDate } = getPeriodRange();
+  const { fromDate, toDate } = getPeriodRange('debts');
   let storesArr = data.stores.slice();
   const totalDebts = storesArr.reduce((sum, store) => {
     const storeSales = data.sales.filter(s => s.storeId === store.id && inPeriod(s.date, fromDate, toDate));
@@ -574,8 +574,24 @@ function generatePartnerReportData() {
   ];
 }
 
-function getPeriodRange() {
-  const f = document.getElementById('reportFromDate'); const t = document.getElementById('reportToDate');
+function getPeriodRange(reportType) {
+  // إذا تم تمرير نوع التقرير، استخدم العناصر الخاصة به
+  if (reportType) {
+    const periodSelect = document.getElementById(`${reportType}Period`);
+    const period = periodSelect ? periodSelect.value : 'this_month';
+    
+    if (period === 'custom') {
+      const fromDate = document.getElementById(`${reportType}FromDate`)?.value || moment().startOf('month').format('YYYY-MM-DD');
+      const toDate = document.getElementById(`${reportType}ToDate`)?.value || moment().format('YYYY-MM-DD');
+      return { fromDate, toDate };
+    }
+    
+    return getPeriodRangeByValue(period);
+  }
+  
+  // السلوك الافتراضي القديم للتوافق مع الكود الموجود
+  const f = document.getElementById('reportFromDate'); 
+  const t = document.getElementById('reportToDate');
   const fromDate = formatDateEn((f && f.value) || moment().startOf('month').format('YYYY-MM-DD'));
   const toDate = formatDateEn((t && t.value) || moment().format('YYYY-MM-DD'));
   return { fromDate, toDate };
@@ -597,7 +613,7 @@ function renderQuickSummaries(){
     console.warn('البيانات غير متوفرة في renderQuickSummaries');
     return;
   }
-  const { fromDate, toDate } = getPeriodRange();
+  const { fromDate, toDate } = getPeriodRange('summaries');
   const end = moment(toDate);
   let start = moment(fromDate);
   // احمِ الأداء: في حال كانت الفترة طويلة جدًا، اعرض آخر 365 يومًا فقط
@@ -831,7 +847,7 @@ function exportSummaries(format) {
 
 function exportDebts(format) {
   const { fromDate, toDate } = getPeriodRange('debts');
-  const debtData = generateDebtReportData();
+  const debtData = generateDebtReportDataForExport();
   
   if (format === 'excel') {
     const wb = XLSX.utils.book_new();
@@ -852,7 +868,7 @@ function exportDebts(format) {
 
 function exportProfit(format) {
   const { fromDate, toDate } = getPeriodRange('profit');
-  const profitData = generateProfitReportData();
+  const profitData = generateProfitReportDataForExport();
   
   if (format === 'excel') {
     const wb = XLSX.utils.book_new();
@@ -871,19 +887,7 @@ function exportProfit(format) {
   }
 }
 
-// دالة مساعدة للحصول على نطاق التاريخ لأي تقرير
-function getPeriodRange(reportType) {
-  const periodSelect = document.getElementById(`${reportType}Period`);
-  const period = periodSelect ? periodSelect.value : 'this_month';
-  
-  if (period === 'custom') {
-    const fromDate = document.getElementById(`${reportType}FromDate`)?.value || moment().startOf('month').format('YYYY-MM-DD');
-    const toDate = document.getElementById(`${reportType}ToDate`)?.value || moment().format('YYYY-MM-DD');
-    return { fromDate, toDate };
-  }
-  
-  return getPeriodRangeByValue(period);
-}
+
 
 // دالة مساعدة لتحويل قيمة الفترة إلى نطاق تاريخ
 function getPeriodRangeByValue(period) {
@@ -1057,7 +1061,7 @@ function openPrintWindow(html) {
 }
 
 // دوال توليد البيانات للتصدير
-function generateDebtReportData() {
+function generateDebtReportDataForExport() {
   const table = document.getElementById('debtReportTable');
   const data = [];
   if (table) {
@@ -1077,7 +1081,7 @@ function generateDebtReportData() {
   return data;
 }
 
-function generateProfitReportData() {
+function generateProfitReportDataForExport() {
   const totalSales = parseFormattedNumber(document.getElementById('totalSalesReport')?.textContent || '0');
   const totalPayments = parseFormattedNumber(document.getElementById('totalPaymentsReport')?.textContent || '0');
   const totalExpenses = parseFormattedNumber(document.getElementById('totalExpensesReport')?.textContent || '0');
