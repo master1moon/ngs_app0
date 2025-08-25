@@ -1378,3 +1378,6 @@ if (typeof window !== 'undefined'){
   });
 	document.addEventListener('app-data-loaded', ()=>{ initReportsControls(); });
 }
+
+// تصدير الدوال للنطاق العام
+window.generatePartnerReports = generatePartnerReports;

@@ -3714,20 +3714,38 @@
 
                     function toArraySafe(x){ return Array.isArray(x) ? x : []; }
                     function mergeUniqueById(existingArr, incomingArr){
-                        const map = new Map();
-                        // keep existing first
-                        toArraySafe(existingArr).forEach(item => { if (item && item.id) map.set(item.id, item); });
-                        // incoming overwrites by id
-                        toArraySafe(incomingArr).forEach(item => {
-                            if (item && item.id) { map.set(item.id, item); }
-                            else if (item) {
-                                // no id: dedupe by JSON string
-                                const key = 'noid:' + JSON.stringify(item);
-                                if (!map.has(key)) map.set(key, item);
+                        try {
+                            const map = new Map();
+                            // keep existing first
+                            const existing = toArraySafe(existingArr);
+                            const incoming = toArraySafe(incomingArr);
+                            
+                            // حد أقصى للعناصر لتجنب مشاكل الذاكرة
+                            const maxItems = 10000;
+                            if (existing.length + incoming.length > maxItems) {
+                                console.warn(`تحذير: عدد العناصر كبير جداً (${existing.length + incoming.length}). سيتم اقتطاع البيانات.`);
                             }
-                        });
-                        // filter out synthetic noid keys
-                        return Array.from(map.entries()).map(([k,v]) => v);
+                            
+                            existing.slice(0, maxItems/2).forEach(item => { 
+                                if (item && item.id) map.set(item.id, item); 
+                            });
+                            
+                            // incoming overwrites by id
+                            incoming.slice(0, maxItems/2).forEach(item => {
+                                if (item && item.id) { 
+                                    map.set(item.id, item); 
+                                } else if (item) {
+                                    // تجنب JSON.stringify للعناصر الكبيرة
+                                    const simpleKey = `noid:${item.date || ''}_${item.amount || item.total || ''}`;
+                                    if (!map.has(simpleKey)) map.set(simpleKey, item);
+                                }
+                            });
+                            
+                            return Array.from(map.values());
+                        } catch (e) {
+                            console.error('خطأ في دمج البيانات:', e);
+                            return toArraySafe(existingArr);
+                        }
                     }
                     
                     console.log('نوع البيانات المختار:', dataType);
@@ -3812,16 +3830,26 @@
                     
                     showNotification('تم استيراد البيانات بنجاح (تمت إزالة التكرارات)', 'success');
                     
-                    // تحديث الواجهة
-                    updateDashboard();
-                    renderPackagesTable();
-                    renderInventoryTable();
-                    renderStoresList();
-                    renderExpensesTable();
-                    updateReportStores();
-                    updateProfitReport();
-                    generateDebtReport();
-                    generatePartnerReports();
+                    // تحديث الواجهة مع تأخير لتجنب التداخل
+                    setTimeout(() => {
+                        try {
+                            if (typeof updateDashboard === 'function') updateDashboard();
+                            if (typeof renderPackagesTable === 'function') renderPackagesTable();
+                            if (typeof renderInventoryTable === 'function') renderInventoryTable();
+                            if (typeof renderStoresList === 'function') renderStoresList();
+                            if (typeof renderExpensesTable === 'function') renderExpensesTable();
+                            if (typeof updateReportStores === 'function') updateReportStores();
+                            if (typeof updateProfitReport === 'function') updateProfitReport();
+                            if (typeof generateDebtReport === 'function') generateDebtReport();
+                            if (typeof generatePartnerReports === 'function') generatePartnerReports();
+                        } catch (updateError) {
+                            console.error('خطأ في تحديث الواجهة:', updateError);
+                            // إعادة تحميل الصفحة في حالة الخطأ
+                            if (confirm('حدث خطأ في تحديث الواجهة. هل تريد إعادة تحميل الصفحة؟')) {
+                                location.reload();
+                            }
+                        }
+                    }, 100);
                     
                 } catch (error) {
                     console.error('خطأ في استيراد البيانات:', error);
@@ -4099,24 +4127,34 @@
         window.updateReportStores = updateReportStores;
         
         // دالة مساعدة لتحديث جميع الأقسام
+        let isUpdating = false;
         function updateAllSections() {
-            updateDashboard();
-            updateProfitReport();
-            generateDebtReport();
-            if (typeof generatePartnerReports === 'function') {
-                generatePartnerReports();
-            }
-            if (typeof renderStoresList === 'function') {
-                renderStoresList();
-            }
-            if (typeof renderPackagesTable === 'function') {
-                renderPackagesTable();
-            }
-            if (typeof renderInventoryTable === 'function') {
-                renderInventoryTable();
-            }
-            if (typeof renderExpensesTable === 'function') {
-                renderExpensesTable();
+            // حماية ضد الاستدعاءات المتكررة
+            if (isUpdating) return;
+            isUpdating = true;
+            
+            try {
+                updateDashboard();
+                updateProfitReport();
+                generateDebtReport();
+                if (typeof generatePartnerReports === 'function') {
+                    generatePartnerReports();
+                }
+                if (typeof renderStoresList === 'function') {
+                    renderStoresList();
+                }
+                if (typeof renderPackagesTable === 'function') {
+                    renderPackagesTable();
+                }
+                if (typeof renderInventoryTable === 'function') {
+                    renderInventoryTable();
+                }
+                if (typeof renderExpensesTable === 'function') {
+                    renderExpensesTable();
+                }
+            } finally {
+                // إعادة تعيين العلامة بعد انتهاء التحديث
+                setTimeout(() => { isUpdating = false; }, 100);
             }
         }
         window.updateAllSections = updateAllSections;
