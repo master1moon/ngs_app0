@@ -43,6 +43,7 @@ function savePayment() {
   updateDashboard();
   updateProfitReport();
   generateDebtReport();
+  if (typeof generatePartnerReports === 'function') generatePartnerReports();
   const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal')); modal.hide();
 }
 
@@ -77,4 +78,12 @@ function deletePayment(id) {
   saveData();
   (async()=>{ try{ if (typeof addToTrash==='function') await addToTrash('payments', payment); }catch{}; showStoreDetails(payment.storeId); updateDashboard(); updateProfitReport(); generateDebtReport(); })();
   showNotification('تم حذف التسديد بنجاح', 'success');
+}
+
+// تصدير الدوال للنطاق العام
+if (typeof window !== 'undefined') {
+  window.addPayment = addPayment;
+  window.savePayment = savePayment;
+  window.editPayment = editPayment;
+  window.deletePayment = deletePayment;
 }

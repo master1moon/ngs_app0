@@ -94,8 +94,6 @@ function generatePartnerReports() {
   const net = totalPays - totalExps;
   const partners = getPartnersCount();
   const perPartner = net / partners;
-  const listPays = pays.map(p=> ({ التاريخ: formatDateEn(p.date), المحل: (data.stores.find(s=>s.id===p.storeId)?.name)||'', المبلغ: Number(p.amount)||0, ملاحظات: p.notes||'' }));
-  const listExps = exps.map(e=> ({ التاريخ: formatDateEn(e.date), النوع: e.type||'', المبلغ: Number(e.amount)||0, ملاحظات: e.notes||'' }));
   const html = `
     <div class="partner-report-card">
       <div class="partner-report-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -111,11 +109,71 @@ function generatePartnerReports() {
       <div class="row g-3">
         <div class="col-12 col-md-6">
           <h6>جميع التسديدات</h6>
-          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>التاريخ</th><th>المحل</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${listPays.map(r=>`<tr><td>${r.التاريخ}</td><td>${r.المحل}</td><td class="currency">${formatNumber(r.المبلغ)}</td><td>${r.ملاحظات}</td></tr>`).join('')}</tbody></table></div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>المحل</th>
+                  <th>المبلغ</th>
+                  <th>ملاحظات</th>
+                  <th width="100">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pays.map((p, idx) => `
+                  <tr data-payment-id="${p.id}">
+                    <td>${formatDateEn(p.date)}</td>
+                    <td>${(data.stores.find(s=>s.id===p.storeId)?.name)||''}</td>
+                    <td class="currency">${formatNumber(p.amount||0)}</td>
+                    <td>${p.notes||''}</td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-primary" onclick="editPaymentFromPartner('${p.id}')" title="تعديل">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" onclick="deletePaymentFromPartner('${p.id}')" title="حذف">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
         <div class="col-12 col-md-6">
           <h6>جميع المصروفات</h6>
-          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${listExps.map(r=>`<tr><td>${r.التاريخ}</td><td>${r.النوع}</td><td class="currency">${formatNumber(r.المبلغ)}</td><td>${r.ملاحظات}</td></tr>`).join('')}</tbody></table></div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>النوع</th>
+                  <th>المبلغ</th>
+                  <th>ملاحظات</th>
+                  <th width="100">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${exps.map((e, idx) => `
+                  <tr data-expense-id="${e.id}">
+                    <td>${formatDateEn(e.date)}</td>
+                    <td>${e.type||''}</td>
+                    <td class="currency">${formatNumber(e.amount||0)}</td>
+                    <td>${e.notes||''}</td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-primary" onclick="editExpenseFromPartner('${e.id}')" title="تعديل">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" onclick="deleteExpenseFromPartner('${e.id}')" title="حذف">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>`;
@@ -1230,6 +1288,83 @@ function syncCustomRange(reportType) {
   if (periodSelect && customRange) {
     customRange.style.display = periodSelect.value === 'custom' ? '' : 'none';
   }
+}
+
+// دوال تعديل وحذف التسديدات والمصروفات من تقرير الشركاء
+function editPaymentFromPartner(paymentId) {
+  const payment = data.payments.find(p => p.id === paymentId);
+  if (!payment) {
+    showNotification('لم يتم العثور على التسديد', 'error');
+    return;
+  }
+  
+  // استدعاء دالة التعديل من payments.js
+  if (typeof editPayment === 'function') {
+    editPayment(paymentId);
+  } else {
+    showNotification('دالة التعديل غير متوفرة', 'error');
+  }
+}
+
+function deletePaymentFromPartner(paymentId) {
+  if (!confirm('هل أنت متأكد من حذف هذا التسديد؟')) return;
+  
+  const payment = data.payments.find(p => p.id === paymentId);
+  if (!payment) {
+    showNotification('لم يتم العثور على التسديد', 'error');
+    return;
+  }
+  
+  // استدعاء دالة الحذف من payments.js
+  if (typeof deletePayment === 'function') {
+    deletePayment(paymentId);
+    // تحديث تقرير الشركاء بعد الحذف
+    setTimeout(() => generatePartnerReports(), 100);
+  } else {
+    showNotification('دالة الحذف غير متوفرة', 'error');
+  }
+}
+
+function editExpenseFromPartner(expenseId) {
+  const expense = data.expenses.find(e => e.id === expenseId);
+  if (!expense) {
+    showNotification('لم يتم العثور على المصروف', 'error');
+    return;
+  }
+  
+  // استدعاء دالة التعديل من expenses.js
+  if (typeof editExpense === 'function') {
+    editExpense(expenseId);
+  } else {
+    showNotification('دالة التعديل غير متوفرة', 'error');
+  }
+}
+
+function deleteExpenseFromPartner(expenseId) {
+  if (!confirm('هل أنت متأكد من حذف هذا المصروف؟')) return;
+  
+  const expense = data.expenses.find(e => e.id === expenseId);
+  if (!expense) {
+    showNotification('لم يتم العثور على المصروف', 'error');
+    return;
+  }
+  
+  // استدعاء دالة الحذف من expenses.js
+  if (typeof deleteExpense === 'function') {
+    deleteExpense(expenseId);
+    // تحديث تقرير الشركاء بعد الحذف
+    setTimeout(() => generatePartnerReports(), 100);
+  } else {
+    showNotification('دالة الحذف غير متوفرة', 'error');
+  }
+}
+
+// تصدير الدوال للنطاق العام
+if (typeof window !== 'undefined') {
+  window.editPaymentFromPartner = editPaymentFromPartner;
+  window.deletePaymentFromPartner = deletePaymentFromPartner;
+  window.editExpenseFromPartner = editExpenseFromPartner;
+  window.deleteExpenseFromPartner = deleteExpenseFromPartner;
 }
 
 if (typeof window !== 'undefined'){

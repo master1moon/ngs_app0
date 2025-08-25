@@ -83,6 +83,7 @@ function saveExpense() {
   renderExpensesTable();
   updateDashboard();
   updateProfitReport();
+  if (typeof generatePartnerReports === 'function') generatePartnerReports();
   const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal')); modal.hide();
 }
 
@@ -250,6 +251,14 @@ function getFilteredExpensesForExport(){
 }
 // expose for other modules
 window.__getFilteredExpensesForExport = getFilteredExpensesForExport;
+
+// تصدير الدوال للنطاق العام
+if (typeof window !== 'undefined') {
+  window.addExpense = addExpense;
+  window.saveExpense = saveExpense;
+  window.editExpense = editExpense;
+  window.deleteExpense = deleteExpense;
+}
 
 function renderExpensesTable() {
   try {
