@@ -134,8 +134,15 @@ if (typeof window !== 'undefined') {
 async function selectContactPhone() {
   // التحقق من دعم المتصفح لـ Contact Picker API
   if (!('contacts' in navigator && 'ContactsManager' in window)) {
-    // إذا لم تكن مدعومة، نعرض رسالة توضيحية
-    showNotification('متصفحك لا يدعم الوصول لجهات الاتصال. يرجى إدخال الرقم يدوياً.', 'info');
+    // محاولة استخدام Web Share API كبديل
+    if (navigator.share) {
+      showNotification('يمكنك نسخ رقم الهاتف من جهات الاتصال ولصقه هنا', 'info');
+      // فتح حقل الإدخال للصق
+      document.getElementById('storePhone').focus();
+      document.getElementById('storePhone').select();
+    } else {
+      showNotification('متصفحك لا يدعم الوصول المباشر لجهات الاتصال. يرجى إدخال الرقم يدوياً.', 'info');
+    }
     return;
   }
   
@@ -156,14 +163,24 @@ async function selectContactPhone() {
         // تنظيف رقم الهاتف من الرموز والمسافات
         phoneNumber = phoneNumber.replace(/[\s\-\(\)\+]/g, '');
         
-        // إذا كان الرقم يبدأ بـ 966 (رمز السعودية)، نحوله للصيغة المحلية
-        if (phoneNumber.startsWith('966')) {
-          phoneNumber = '0' + phoneNumber.substring(3);
+        // إذا كان الرقم يبدأ بـ 967 (رمز اليمن)، نحوله للصيغة المحلية
+        if (phoneNumber.startsWith('967')) {
+          phoneNumber = phoneNumber.substring(3);
+          // إضافة الصفر في البداية إذا لم يكن موجوداً
+          if (!phoneNumber.startsWith('0')) {
+            phoneNumber = '0' + phoneNumber;
+          }
         }
         
-        // التحقق من أن الرقم يبدأ بـ 05
-        if (!phoneNumber.startsWith('05') && phoneNumber.startsWith('5')) {
-          phoneNumber = '0' + phoneNumber;
+        // التحقق من أن الرقم يمني صحيح (يبدأ بـ 73, 77, 71, 70, 78, 79)
+        const yemeniPrefixes = ['73', '77', '71', '70', '78', '79'];
+        const prefix = phoneNumber.substring(0, 2);
+        
+        if (!yemeniPrefixes.includes(prefix)) {
+          // إذا كان الرقم بدون صفر في البداية، نضيفه
+          if (yemeniPrefixes.includes(phoneNumber.substring(0, 2))) {
+            phoneNumber = '0' + phoneNumber;
+          }
         }
         
         // وضع الرقم في الحقل
@@ -404,10 +421,14 @@ function saveStore() {
     return; 
   }
   
-  // التحقق من صحة رقم الهاتف إذا تم إدخاله
-  if (phone && !/^(05|5)\d{8}$/.test(phone)) {
-    showNotification('يرجى إدخال رقم هاتف صحيح (مثال: 0501234567)', 'error');
-    return;
+  // التحقق من صحة رقم الهاتف اليمني إذا تم إدخاله
+  if (phone) {
+    // الأرقام اليمنية تبدأ بـ 73, 77, 71, 70, 78, 79 وتكون 9 أرقام (أو 10 مع الصفر)
+    const yemeniPhoneRegex = /^(0)?(73|77|71|70|78|79)\d{7}$/;
+    if (!yemeniPhoneRegex.test(phone)) {
+      showNotification('يرجى إدخال رقم هاتف يمني صحيح (مثال: 0771234567)', 'error');
+      return;
+    }
   }
   
   if (id) {
