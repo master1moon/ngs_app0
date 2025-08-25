@@ -46,11 +46,9 @@ function getPriceTypeName(priceType) {
   }
 }
 
-// دالة للتحقق من تطابق المحل مع الفلتر
+// دالة للتحقق من تطابق المحل مع الفلتر - معطلة الآن
 function isStoreMatch(item) {
-  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
-  if (storeFilter === 'all') return true;
-  return String(item.storeId || '') === String(storeFilter);
+  return true; // إرجاع true دائماً بعد حذف الفلاتر
 }
 
 // تصدير الدالة للنطاق العام
@@ -88,8 +86,7 @@ function generatePartnerReports() {
   if (!container) return;
   container.innerHTML = '';
   const { fromDate, toDate, text } = getPartnersPeriodRange();
-  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
-  const byStore = x => (storeFilter==='all') ? true : String(x.storeId||'') === String(storeFilter);
+  const byStore = x => true; // لا توجد فلاتر بعد الآن
   const pays = data.payments.filter(p=> inPeriod(p.date, fromDate, toDate) && byStore(p));
   const exps = data.expenses.filter(e=> inPeriod(e.date, fromDate, toDate) && byStore(e));
   const totalPays = pays.reduce((s,x)=> s + (Number(x.amount)||0), 0);
@@ -204,28 +201,8 @@ function exportPartnerReport() {
 }
 
 function updateReportStores() {
-  // البحث عن العنصر الصحيح reportsStoreFilter بدلاً من reportStoreSelect
-  const select = document.getElementById('reportsStoreFilter');
-  if (!select) return;
-  
-  // حفظ القيمة الحالية
-  const currentValue = select.value;
-  
-  // مسح الخيارات الحالية باستثناء "جميع المحلات"
-  while (select.options.length > 1) select.remove(1);
-  
-  // إضافة المحلات
-  data.stores.forEach(store => {
-    const option = document.createElement('option');
-    option.value = store.id; 
-    option.textContent = store.name; 
-    select.appendChild(option);
-  });
-  
-  // استعادة القيمة المحددة إذا كانت لا تزال موجودة
-  if (currentValue && [...select.options].some(opt => opt.value === currentValue)) {
-    select.value = currentValue;
-  }
+  // لا حاجة لهذه الدالة بعد حذف الفلاتر
+  return;
 }
 
 function generateDebtReport() {
@@ -234,8 +211,6 @@ function generateDebtReport() {
   table.innerHTML = '';
   const { fromDate, toDate } = getPeriodRange();
   let storesArr = data.stores.slice();
-  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
-  if (storeFilter !== 'all') storesArr = storesArr.filter(s=> String(s.id) === String(storeFilter));
   const totalDebts = storesArr.reduce((sum, store) => {
     const storeSales = data.sales.filter(s => s.storeId === store.id && inPeriod(s.date, fromDate, toDate));
     const storePayments = data.payments.filter(p => p.storeId === store.id && inPeriod(p.date, fromDate, toDate));
@@ -676,7 +651,7 @@ window.addEventListener('resize', ()=>{ renderQuickSummaries(); });
 function renderComparisonReport(){
   const table = document.getElementById('comparisonReportTable'); if (!table) return;
   const sub = document.getElementById('comparisonReportSubtitle');
-  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
+
   const now = moment();
   const thisFrom = now.clone().startOf('month').format('YYYY-MM-DD');
   const thisTo = now.clone().endOf('month').format('YYYY-MM-DD');
@@ -730,8 +705,7 @@ function getPartnersCount(){ const el = document.getElementById('partnersCount')
 
 function exportPartners(format){
   const { fromDate, toDate, text } = getPartnersPeriodRange();
-  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
-  const byStore = x => (storeFilter==='all') ? true : String(x.storeId||'') === String(storeFilter);
+  const byStore = x => true; // لا توجد فلاتر بعد الآن
   const pays = data.payments.filter(p=> inPeriod(p.date, fromDate, toDate) && byStore(p));
   const exps = data.expenses.filter(e=> inPeriod(e.date, fromDate, toDate) && byStore(e));
   const totalPays = pays.reduce((s,x)=> s + (Number(x.amount)||0), 0);
@@ -796,21 +770,13 @@ function setupReportsLazyObserver(){
 }
 
 function __populateReportsStores(){
-	const storeSel = document.getElementById('reportsStoreFilter');
-	if (!storeSel) return;
-	try {
-		const d = (typeof getDataRef === 'function' ? getDataRef() : (window.data || {})) || {};
-		const stores = Array.isArray(d.stores) ? d.stores : [];
-		const current = storeSel.value || 'all';
-		storeSel.innerHTML = '<option value="all">جميع المحلات</option>' + stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-		if ([...storeSel.options].some(o=>o.value===current)) storeSel.value = current; else storeSel.value = 'all';
-	} catch(_) {}
+	// لا حاجة لهذه الدالة بعد حذف الفلاتر
+	return;
 }
 
 function __syncReportsCustomVisibility(){
-	const periodSel = document.getElementById('reportsPeriod');
-	const wrap = document.getElementById('reportsCustomRange');
-	if (wrap && periodSel) wrap.style.display = periodSel.value === 'custom' ? '' : 'none';
+	// لا حاجة لهذه الدالة بعد حذف الفلاتر
+	return;
 }
 
 function __reRenderReports(){
@@ -824,16 +790,7 @@ function __reRenderReports(){
 }
 
 function initReportsControls(){
-	__populateReportsStores();
-	__syncReportsCustomVisibility();
-	const periodSel = document.getElementById('reportsPeriod');
-	const applyBtn = document.getElementById('applyReportsCustomRange');
-	const storeSel = document.getElementById('reportsStoreFilter');
-	const sectionSel = document.getElementById('reportsSectionFilter');
-	if (periodSel && !periodSel.dataset._wired){ periodSel.addEventListener('change', ()=>{ __syncReportsCustomVisibility(); if (periodSel.value !== 'custom') __reRenderReports(); }); periodSel.dataset._wired='1'; }
-	if (applyBtn && !applyBtn.dataset._wired){ applyBtn.addEventListener('click', ()=>{ __reRenderReports(); }); applyBtn.dataset._wired='1'; }
-	if (storeSel && !storeSel.dataset._wired){ storeSel.addEventListener('change', ()=>{ __reRenderReports(); }); storeSel.dataset._wired='1'; }
-	if (sectionSel && !sectionSel.dataset._wired){ sectionSel.addEventListener('change', ()=>{ /* فقط لإظهار/إخفاء البطاقات إن لزم مستقبلًا */ __reRenderReports(); }); sectionSel.dataset._wired='1'; }
+	// لا حاجة لمعالجات الأحداث بعد حذف الفلاتر
 	__reRenderReports();
 }
 

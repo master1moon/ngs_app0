@@ -759,44 +759,7 @@
             <div id="reports" class="section" style="display:none;">
                 <div class="section-content">
                     <h4 class="section-title">التقارير المالية</h4>
-                    <div class="row g-2 align-items-end mb-3" id="reportsFilters">
-                        <div class="col-12 col-md-auto">
-                            <label class="form-label mb-1">القسم</label>
-                            <select id="reportsSectionFilter" class="form-select form-select-sm" style="min-width:160px;">
-                                <option value="all">الكل</option>
-                                <option value="payments" selected>التسديدات</option>
-                                <option value="expenses">المصروفات</option>
-                                <option value="sales">المبيعات</option>
-                                <option value="debts">الديون</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-auto">
-                            <label class="form-label mb-1">المحل</label>
-                            <select id="reportsStoreFilter" class="form-select form-select-sm" style="min-width:160px;">
-                                <option value="all">جميع المحلات</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-auto">
-                            <label class="form-label mb-1">المدة</label>
-                            <select id="reportsPeriod" class="form-select form-select-sm" style="min-width:160px;">
-                                <option value="from_start">من البداية</option>
-                                <option value="day">خلال يوم</option>
-                                <option value="week">خلال أسبوع</option>
-                                <option value="month">خلال شهر</option>
-                                <option value="this_month" selected>خلال هذا الشهر</option>
-                                <option value="prev_month">خلال الشهر السابق</option>
-                                <option value="custom">مدى مخصص</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-auto" id="reportsCustomRange" style="display:none;">
-                            <label class="form-label mb-1 d-block">نطاق التاريخ</label>
-                            <div class="d-flex gap-2">
-                                <input type="date" id="reportsFromDate" class="form-control form-control-sm" />
-                                <input type="date" id="reportsToDate" class="form-control form-control-sm" />
-                                <button class="btn btn-sm btn-primary" id="applyReportsCustomRange" type="button">تطبيق</button>
-                            </div>
-                        </div>
-                    </div>
+
                     
                     <div class="card mb-3" id="quickSummariesCard">
                         <div class="card-header bg-light">ملخصات مرئية</div>
@@ -906,7 +869,7 @@
                         </div>
                     </div>
                     
-                    <div class="card" id="partnerReportsCard">
+                    <div class="card" id="partnerReportsCard" style="display:none;">
                         <div class="card-header bg-secondary text-white">
                             تقارير الشركاء
                         </div>
