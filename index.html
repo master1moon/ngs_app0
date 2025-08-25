@@ -459,6 +459,77 @@
 
         body.drawer-open{ overflow: hidden; }
         @media (max-width: 768px){ .main-content{ padding:12px; height: calc(100vh - 48px); overflow-y:auto; -webkit-overflow-scrolling: touch; } }
+        
+        /* أنماط قسم المحلات المحسّنة */
+        .stores-list-container {
+            border: 1px solid #e3e6f0;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .stores-list-container .list-group-item {
+            border: none;
+            border-bottom: 1px solid #e3e6f0;
+            transition: all 0.3s ease;
+        }
+        
+        .stores-list-container .list-group-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stores-list-container .list-group-item:hover {
+            background-color: #f1f3f5;
+            transform: translateX(-5px);
+        }
+        
+        .stores-list-container .list-group-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .stores-list-container .list-group-item.active .text-muted {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+        
+        .stores-list-container .list-group-item.active .text-success {
+            color: #a3e4a3 !important;
+        }
+        
+        .stores-list-container .list-group-item.active .text-danger {
+            color: #f8b4b4 !important;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            height: 100%;
+            border: 2px solid #e3e6f0;
+            transition: all 0.3s ease;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .info-card.border-success {
+            border-color: #28a745;
+        }
+        
+        .info-card.border-danger {
+            border-color: #dc3545;
+        }
+        
+        .info-card i {
+            font-size: 2rem;
+        }
+        
+        .info-card h6 {
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
       </style>
 </head>
 <body>
@@ -686,8 +757,38 @@
                     
                     <div class="row">
                         <div class="col-md-4">
-                            <div id="storesList" class="list-group">
-                                <!-- سيتم ملؤه بالبيانات -->
+                            <!-- شريط البحث والفلاتر -->
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="input-group mb-3">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" id="storeSearchInput" class="form-control" placeholder="بحث في المحلات...">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">نوع السعر</label>
+                                        <select id="storePriceFilter" class="form-select form-select-sm">
+                                            <option value="all">جميع الأنواع</option>
+                                            <option value="retail">تجزئة</option>
+                                            <option value="wholesale">جملة</option>
+                                            <option value="distributor">موزعين</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">ترتيب حسب</label>
+                                        <select id="storeSortBy" class="form-select form-select-sm">
+                                            <option value="name">الاسم</option>
+                                            <option value="date">تاريخ الإضافة</option>
+                                            <option value="balance">الرصيد</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- قائمة المحلات -->
+                            <div class="stores-list-container" style="max-height: 600px; overflow-y: auto;">
+                                <div id="storesList" class="list-group">
+                                    <!-- سيتم ملؤه بالبيانات -->
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -1259,6 +1360,10 @@
                                 <option value="wholesale">سعر الجملة</option>
                                 <option value="distributor">سعر الموزعين</option>
                             </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">رقم الهاتف</label>
+                            <input type="tel" id="storePhone" class="form-control" placeholder="مثال: 0501234567" dir="ltr">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">تاريخ الإضافة</label>

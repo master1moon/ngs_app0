@@ -1,19 +1,130 @@
 // إدارة المحلات
 
+// حالة البحث والفلترة
+const storesState = {
+  searchQuery: '',
+  priceFilter: 'all',
+  sortBy: 'name'
+};
+
 /**
- * عرض قائمة المحلات في الشريط الجانبي
- * يقوم بإنشاء عناصر القائمة لكل محل مع عرض اسمه ونوع السعر
+ * عرض قائمة المحلات في الشريط الجانبي مع تطبيق البحث والفلترة
+ * يقوم بإنشاء عناصر القائمة لكل محل مع عرض اسمه ونوع السعر والرصيد
  * يضيف مستمع للنقر على كل محل لعرض تفاصيله
  */
 function renderStoresList() {
-  const list = document.getElementById('storesList'); if (!list) return;
+  const list = document.getElementById('storesList'); 
+  if (!list) return;
+  
+  // تطبيق البحث والفلترة
+  let filteredStores = [...data.stores];
+  
+  // البحث
+  if (storesState.searchQuery) {
+    const query = storesState.searchQuery.toLowerCase();
+    filteredStores = filteredStores.filter(store => 
+      store.name.toLowerCase().includes(query) ||
+      (store.phone && store.phone.includes(query))
+    );
+  }
+  
+  // فلتر نوع السعر
+  if (storesState.priceFilter !== 'all') {
+    filteredStores = filteredStores.filter(store => store.priceType === storesState.priceFilter);
+  }
+  
+  // حساب الرصيد لكل محل
+  filteredStores = filteredStores.map(store => {
+    const sales = data.sales.filter(s => s.storeId === store.id);
+    const payments = data.payments.filter(p => p.storeId === store.id);
+    const totalSales = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+    const totalPayments = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    const balance = totalSales - totalPayments;
+    return { ...store, balance };
+  });
+  
+  // الترتيب
+  switch (storesState.sortBy) {
+    case 'name':
+      filteredStores.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    case 'date':
+      filteredStores.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      break;
+    case 'balance':
+      filteredStores.sort((a, b) => b.balance - a.balance);
+      break;
+  }
+  
   list.innerHTML = '';
-  data.stores.forEach(store => {
-    const item = document.createElement('a'); item.href = '#'; item.className = 'list-group-item list-group-item-action'; item.dataset.id = store.id;
-    item.innerHTML = `<div>${store.name}</div><small class="text-muted">نوع السعر: ${getPriceTypeName(store.priceType)}</small>`;
-    item.addEventListener('click', () => showStoreDetails(store.id));
+  
+  if (filteredStores.length === 0) {
+    list.innerHTML = '<div class="text-center p-3 text-muted">لا توجد محلات مطابقة للبحث</div>';
+    return;
+  }
+  
+  filteredStores.forEach(store => {
+    const item = document.createElement('a'); 
+    item.href = '#'; 
+    item.className = 'list-group-item list-group-item-action'; 
+    item.dataset.id = store.id;
+    
+    const balanceClass = store.balance >= 0 ? 'text-success' : 'text-danger';
+    const phoneInfo = store.phone ? `<i class="fas fa-phone fa-xs"></i> ${store.phone}` : '';
+    
+    item.innerHTML = `
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h6 class="mb-1">${store.name}</h6>
+          <small class="text-muted">نوع السعر: ${getPriceTypeName(store.priceType)}</small>
+          ${phoneInfo ? `<br><small class="text-muted">${phoneInfo}</small>` : ''}
+        </div>
+        <div class="text-end">
+          <small class="${balanceClass} fw-bold">${formatNumber(Math.abs(store.balance))} ريال</small>
+          <br><small class="text-muted">${store.balance >= 0 ? 'دائن' : 'مدين'}</small>
+        </div>
+      </div>`;
+    
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      showStoreDetails(store.id);
+    });
+    
     list.appendChild(item);
   });
+}
+
+// تهيئة معالجات البحث والفلترة
+function initStoresFilters() {
+  const searchInput = document.getElementById('storeSearchInput');
+  const priceFilter = document.getElementById('storePriceFilter');
+  const sortBy = document.getElementById('storeSortBy');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      storesState.searchQuery = e.target.value;
+      renderStoresList();
+    });
+  }
+  
+  if (priceFilter) {
+    priceFilter.addEventListener('change', (e) => {
+      storesState.priceFilter = e.target.value;
+      renderStoresList();
+    });
+  }
+  
+  if (sortBy) {
+    sortBy.addEventListener('change', (e) => {
+      storesState.sortBy = e.target.value;
+      renderStoresList();
+    });
+  }
+}
+
+// استدعاء التهيئة عند تحميل الصفحة
+if (typeof window !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', initStoresFilters);
 }
 
 /**
@@ -24,24 +135,70 @@ function renderStoresList() {
  * @param {string} storeId - معرف المحل
  */
 function showStoreDetails(storeId) {
-  const store = data.stores.find(s => s.id === storeId); if (!store) return;
-  document.getElementById('storeHeader').textContent = `تفاصيل المحل: ${store.name}`;
+  const store = data.stores.find(s => s.id === storeId); 
+  if (!store) return;
+  
+  // تحديث العنوان
+  const headerEl = document.getElementById('storeHeader');
+  headerEl.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center">
+      <span>تفاصيل المحل: ${store.name}</span>
+      <div>
+        <button class="btn btn-sm btn-warning edit-store" data-id="${storeId}" title="تعديل">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="btn btn-sm btn-danger delete-store" data-id="${storeId}" title="حذف">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>`;
+  
   const details = document.getElementById('storeDetails');
   const sales = data.sales.filter(s => s.storeId === storeId);
   const payments = data.payments.filter(p => p.storeId === storeId);
   const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
   const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const balance = totalSales - totalPayments;
-  details.innerHTML = `
-    <div class="d-flex justify-content-between mb-4">
-      <div><h5>الرصيد الحالي:</h5><p class="h4 ${balance >= 0 ? 'text-success' : 'text-danger'} currency">${formatNumber(Math.abs(balance))}</p></div>
-      <div><h5>نوع السعر:</h5><p class="h5">${getPriceTypeName(store.priceType)}</p></div>
-      <div>
-        <button class="btn btn-success" id="addSaleBtn" data-store="${storeId}"><i class="fas fa-plus me-2"></i>إضافة بيع</button>
-        <button class="btn btn-info" id="addPaymentBtn" data-store="${storeId}"><i class="fas fa-money-bill me-2"></i>تسديد دفعة</button>
-        <button class="btn btn-warning edit-store" data-id="${storeId}"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-danger delete-store" data-id="${storeId}"><i class="fas fa-trash"></i></button>
+  
+  // عرض معلومات الهاتف إذا كانت موجودة
+  const phoneInfo = store.phone ? 
+    `<div class="col-md-4">
+      <div class="info-card">
+        <i class="fas fa-phone-alt text-info mb-2"></i>
+        <h6>رقم الهاتف</h6>
+        <p class="mb-0">${store.phone}</p>
       </div>
+    </div>` : '';
+  
+  details.innerHTML = `
+    <!-- معلومات المحل الأساسية -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <div class="info-card ${balance >= 0 ? 'border-success' : 'border-danger'}">
+          <i class="fas fa-wallet ${balance >= 0 ? 'text-success' : 'text-danger'} mb-2"></i>
+          <h6>الرصيد الحالي</h6>
+          <p class="h4 mb-0 ${balance >= 0 ? 'text-success' : 'text-danger'} currency">${formatNumber(Math.abs(balance))}</p>
+          <small class="text-muted">${balance >= 0 ? 'دائن' : 'مدين'}</small>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="info-card">
+          <i class="fas fa-tag text-primary mb-2"></i>
+          <h6>نوع السعر</h6>
+          <p class="h5 mb-0">${getPriceTypeName(store.priceType)}</p>
+        </div>
+      </div>
+      ${phoneInfo}
+    </div>
+    
+    <!-- أزرار الإجراءات السريعة -->
+    <div class="d-flex gap-2 mb-4">
+      <button class="btn btn-success" id="addSaleBtn" data-store="${storeId}">
+        <i class="fas fa-cart-plus me-2"></i>إضافة بيع
+      </button>
+      <button class="btn btn-info" id="addPaymentBtn" data-store="${storeId}">
+        <i class="fas fa-money-bill-wave me-2"></i>تسديد دفعة
+      </button>
     </div>
     <h5>عمليات البيع</h5>
     <div class="table-responsive mb-4">
@@ -94,8 +251,11 @@ function showStoreDetails(storeId) {
   });
   document.getElementById('addSaleBtn').addEventListener('click', () => addSale(storeId));
   document.getElementById('addPaymentBtn').addEventListener('click', () => addPayment(storeId));
-  document.querySelector('.edit-store').addEventListener('click', () => editStore(storeId));
-  document.querySelector('.delete-store').addEventListener('click', () => deleteStore(storeId));
+  
+  // معالجات أزرار التعديل والحذف في العنوان
+  headerEl.querySelector('.edit-store').addEventListener('click', () => editStore(storeId));
+  headerEl.querySelector('.delete-store').addEventListener('click', () => deleteStore(storeId));
+  
   document.querySelectorAll('.edit-sale').forEach(btn => { btn.addEventListener('click', () => editSale(btn.dataset.id)); });
   document.querySelectorAll('.delete-sale').forEach(btn => { btn.addEventListener('click', () => deleteSale(btn.dataset.id)); });
   document.querySelectorAll('.edit-payment').forEach(btn => { btn.addEventListener('click', () => editPayment(btn.dataset.id)); });
@@ -112,6 +272,7 @@ function addStore() {
   document.getElementById('storeId').value = '';
   document.getElementById('storeName').value = '';
   document.getElementById('storePriceType').value = 'retail';
+  document.getElementById('storePhone').value = '';
   document.getElementById('storeDate').value = today;
   const modal = new bootstrap.Modal(document.getElementById('storeModal')); modal.show();
 }
@@ -127,6 +288,7 @@ function editStore(id) {
   document.getElementById('storeId').value = store.id;
   document.getElementById('storeName').value = store.name;
   document.getElementById('storePriceType').value = store.priceType;
+  document.getElementById('storePhone').value = store.phone || '';
   document.getElementById('storeDate').value = store.createdAt || today;
   const modal = new bootstrap.Modal(document.getElementById('storeModal')); modal.show();
 }
@@ -158,15 +320,38 @@ function saveStore() {
   const id = document.getElementById('storeId').value;
   const name = document.getElementById('storeName').value;
   const priceType = document.getElementById('storePriceType').value;
+  const phone = document.getElementById('storePhone').value.trim();
   const date = document.getElementById('storeDate').value ? formatDateEn(document.getElementById('storeDate').value) : today;
-  if (!name) { showNotification('يرجى إدخال اسم المحل', 'error'); return; }
+  
+  if (!name) { 
+    showNotification('يرجى إدخال اسم المحل', 'error'); 
+    return; 
+  }
+  
+  // التحقق من صحة رقم الهاتف إذا تم إدخاله
+  if (phone && !/^(05|5)\d{8}$/.test(phone)) {
+    showNotification('يرجى إدخال رقم هاتف صحيح (مثال: 0501234567)', 'error');
+    return;
+  }
+  
   if (id) {
     const store = data.stores.find(s => s.id === id);
-    if (store) { store.name = name; store.priceType = priceType; store.createdAt = date; }
+    if (store) { 
+      store.name = name; 
+      store.priceType = priceType; 
+      store.phone = phone;
+      store.createdAt = date; 
+    }
     showNotification('تم تحديث المحل بنجاح', 'success');
   } else {
     const newId = 'store_' + Date.now();
-    data.stores.push({ id: newId, name, priceType, createdAt: date });
+    data.stores.push({ 
+      id: newId, 
+      name, 
+      priceType, 
+      phone,
+      createdAt: date 
+    });
     showNotification('تم إضافة المحل بنجاح', 'success');
   }
   saveData();
