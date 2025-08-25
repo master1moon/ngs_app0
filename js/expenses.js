@@ -84,7 +84,9 @@ function saveExpense() {
   updateDashboard();
   updateProfitReport();
   if (typeof generatePartnerReports === 'function') generatePartnerReports();
-  const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal')); modal.hide();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal')); 
+  modal.hide();
+  if (typeof cleanupModalBackdrops === 'function') setTimeout(cleanupModalBackdrops, 300);
 }
 
 /**

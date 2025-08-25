@@ -2467,6 +2467,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('saleModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // تحرير بيع
@@ -2600,6 +2601,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // تحرير تسديد
@@ -2721,6 +2723,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('packageModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // إضافة كمية جديدة
@@ -2819,6 +2822,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('inventoryModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // إضافة محل جديد
@@ -2902,6 +2906,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('storeModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // إضافة مصروف جديد
@@ -3008,6 +3013,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
 
@@ -3745,6 +3751,21 @@
         }
         
         // تهيئة النظام عند التحميل
+        // دالة مساعدة لتنظيف backdrop المتبقية
+        function cleanupModalBackdrops() {
+            // إزالة جميع backdrops المتبقية
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // إزالة الأنماط المتبقية على body
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+        
+        // تصدير الدالة للنطاق العام
+        window.cleanupModalBackdrops = cleanupModalBackdrops;
+        
         document.addEventListener('DOMContentLoaded', function() {
             // تحميل البيانات
             loadData();
@@ -3961,6 +3982,25 @@
                     generatePartnerReports();
                 });
             }
+            
+            // تنظيف backdrop عند إغلاق أي modal
+            document.addEventListener('hidden.bs.modal', function (event) {
+                setTimeout(cleanupModalBackdrops, 100);
+            });
+            
+            // معالج إضافي للتأكد من التنظيف عند الضغط على backdrop
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal-backdrop')) {
+                    setTimeout(cleanupModalBackdrops, 300);
+                }
+            });
+            
+            // معالج للتأكد من التنظيف عند الضغط على ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    setTimeout(cleanupModalBackdrops, 300);
+                }
+            });
 
             // تهيئة اقتراحات أنواع المصروفات (chips)
             const defaultExpenseTypes = [

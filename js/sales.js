@@ -86,7 +86,9 @@ function saveSale() {
   updateDashboard();
   updateProfitReport();
   generateDebtReport();
-  const modal = bootstrap.Modal.getInstance(document.getElementById('saleModal')); modal.hide();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('saleModal')); 
+  modal.hide();
+  if (typeof cleanupModalBackdrops === 'function') setTimeout(cleanupModalBackdrops, 300);
 }
 
 /**

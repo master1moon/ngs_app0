@@ -174,7 +174,9 @@ function saveStore() {
   updateDashboard();
   updateReportStores();
   generateDebtReport();
-  const modal = bootstrap.Modal.getInstance(document.getElementById('storeModal')); modal.hide();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('storeModal')); 
+  modal.hide();
+  if (typeof cleanupModalBackdrops === 'function') setTimeout(cleanupModalBackdrops, 300);
 }
 
 // تم نقل دالة exportStoreData إلى reports.js لتجنب التكرار

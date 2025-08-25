@@ -44,7 +44,9 @@ function savePayment() {
   updateProfitReport();
   generateDebtReport();
   if (typeof generatePartnerReports === 'function') generatePartnerReports();
-  const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal')); modal.hide();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal')); 
+  modal.hide();
+  if (typeof cleanupModalBackdrops === 'function') setTimeout(cleanupModalBackdrops, 300);
 }
 
 /**
