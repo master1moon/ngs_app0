@@ -794,7 +794,448 @@ function initReportsControls(){
 	__reRenderReports();
 }
 
+// دوال تصدير التقارير الإضافية
+function exportSummaries(format) {
+  const { fromDate, toDate } = getPeriodRange('summaries');
+  const salesData = data.sales.filter(s => inPeriod(s.date, fromDate, toDate));
+  const paymentsData = data.payments.filter(p => inPeriod(p.date, fromDate, toDate));
+  const expensesData = data.expenses.filter(e => inPeriod(e.date, fromDate, toDate));
+  
+  const totalSales = salesData.reduce((sum, s) => sum + (s.total || 0), 0);
+  const totalPayments = paymentsData.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalExpenses = expensesData.reduce((sum, e) => sum + (e.amount || 0), 0);
+  
+  if (format === 'excel') {
+    const wb = XLSX.utils.book_new();
+    const summaryData = [{
+      'التقرير': 'ملخصات مرئية',
+      'المدة': `${fromDate} إلى ${toDate}`,
+      'إجمالي المبيعات': totalSales,
+      'إجمالي التسديدات': totalPayments,
+      'إجمالي المصروفات': totalExpenses
+    }];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'الملخص');
+    XLSX.writeFile(wb, `ملخصات_${moment().format('YYYY-MM-DD')}.xlsx`);
+    showNotification('تم تصدير الملخصات إلى Excel', 'success');
+  } else if (format === 'txt') {
+    let content = `ملخصات مرئية - المدة: ${fromDate} إلى ${toDate}\n\n`;
+    content += `إجمالي المبيعات: ${formatNumber(totalSales)} ريال\n`;
+    content += `إجمالي التسديدات: ${formatNumber(totalPayments)} ريال\n`;
+    content += `إجمالي المصروفات: ${formatNumber(totalExpenses)} ريال\n`;
+    downloadTextFile(content, `ملخصات_${moment().format('YYYY-MM-DD')}.txt`);
+    showNotification('تم تصدير الملخصات إلى ملف نصي', 'success');
+  } else if (format === 'pdf' || format === 'print') {
+    openSummariesPrintPage(fromDate, toDate, totalSales, totalPayments, totalExpenses);
+  }
+}
+
+function exportDebts(format) {
+  const { fromDate, toDate } = getPeriodRange('debts');
+  const debtData = generateDebtReportData();
+  
+  if (format === 'excel') {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(debtData), 'الديون');
+    XLSX.writeFile(wb, `تقرير_الديون_${moment().format('YYYY-MM-DD')}.xlsx`);
+    showNotification('تم تصدير تقرير الديون إلى Excel', 'success');
+  } else if (format === 'txt') {
+    let content = `تقرير الديون - المدة: ${fromDate} إلى ${toDate}\n\n`;
+    debtData.forEach(debt => {
+      content += `${debt['اسم المحل']}: ${formatNumber(debt['المتبقي'])} ريال\n`;
+    });
+    downloadTextFile(content, `تقرير_الديون_${moment().format('YYYY-MM-DD')}.txt`);
+    showNotification('تم تصدير تقرير الديون إلى ملف نصي', 'success');
+  } else if (format === 'pdf' || format === 'print') {
+    openDebtsPrintPage(fromDate, toDate, debtData);
+  }
+}
+
+function exportProfit(format) {
+  const { fromDate, toDate } = getPeriodRange('profit');
+  const profitData = generateProfitReportData();
+  
+  if (format === 'excel') {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(profitData), 'الأرباح');
+    XLSX.writeFile(wb, `تقرير_الأرباح_${moment().format('YYYY-MM-DD')}.xlsx`);
+    showNotification('تم تصدير تقرير الأرباح إلى Excel', 'success');
+  } else if (format === 'txt') {
+    let content = `تقرير الأرباح والخسائر - المدة: ${fromDate} إلى ${toDate}\n\n`;
+    profitData.forEach(item => {
+      content += `${item['الوصف']}: ${formatNumber(item['المبلغ'])} ريال\n`;
+    });
+    downloadTextFile(content, `تقرير_الأرباح_${moment().format('YYYY-MM-DD')}.txt`);
+    showNotification('تم تصدير تقرير الأرباح إلى ملف نصي', 'success');
+  } else if (format === 'pdf' || format === 'print') {
+    openProfitPrintPage(fromDate, toDate, profitData);
+  }
+}
+
+// دالة مساعدة للحصول على نطاق التاريخ لأي تقرير
+function getPeriodRange(reportType) {
+  const periodSelect = document.getElementById(`${reportType}Period`);
+  const period = periodSelect ? periodSelect.value : 'this_month';
+  
+  if (period === 'custom') {
+    const fromDate = document.getElementById(`${reportType}FromDate`)?.value || moment().startOf('month').format('YYYY-MM-DD');
+    const toDate = document.getElementById(`${reportType}ToDate`)?.value || moment().format('YYYY-MM-DD');
+    return { fromDate, toDate };
+  }
+  
+  return getPeriodRangeByValue(period);
+}
+
+// دالة مساعدة لتحويل قيمة الفترة إلى نطاق تاريخ
+function getPeriodRangeByValue(period) {
+  const now = moment();
+  let fromDate, toDate;
+  
+  switch(period) {
+    case 'from_start':
+      fromDate = '2020-01-01';
+      toDate = now.format('YYYY-MM-DD');
+      break;
+    case 'day':
+      fromDate = toDate = now.format('YYYY-MM-DD');
+      break;
+    case 'week':
+      fromDate = now.clone().subtract(7, 'days').format('YYYY-MM-DD');
+      toDate = now.format('YYYY-MM-DD');
+      break;
+    case 'month':
+      fromDate = now.clone().subtract(1, 'month').format('YYYY-MM-DD');
+      toDate = now.format('YYYY-MM-DD');
+      break;
+    case 'prev_month':
+      fromDate = now.clone().subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
+      toDate = now.clone().subtract(1, 'month').endOf('month').format('YYYY-MM-DD');
+      break;
+    case 'this_month':
+    default:
+      fromDate = now.clone().startOf('month').format('YYYY-MM-DD');
+      toDate = now.format('YYYY-MM-DD');
+      break;
+  }
+  
+  return { fromDate, toDate };
+}
+
+// دالة مساعدة لتنزيل ملف نصي
+function downloadTextFile(content, filename) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// دوال فتح صفحات الطباعة
+function openSummariesPrintPage(fromDate, toDate, totalSales, totalPayments, totalExpenses) {
+  const html = buildPrintPageHTML('ملخصات مرئية', `${fromDate} إلى ${toDate}`, {
+    totalSales,
+    totalPayments,
+    totalExpenses
+  }, 'summaries');
+  openPrintWindow(html);
+}
+
+function openDebtsPrintPage(fromDate, toDate, debtData) {
+  const html = buildPrintPageHTML('تقرير الديون', `${fromDate} إلى ${toDate}`, debtData, 'debts');
+  openPrintWindow(html);
+}
+
+function openProfitPrintPage(fromDate, toDate, profitData) {
+  const html = buildPrintPageHTML('تقرير الأرباح والخسائر', `${fromDate} إلى ${toDate}`, profitData, 'profit');
+  openPrintWindow(html);
+}
+
+// دالة مساعدة لبناء صفحة الطباعة
+function buildPrintPageHTML(title, period, data, type) {
+  let html = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <title>${title}</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .content { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+        th { background-color: #f5f5f5; }
+        .currency { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>${title}</h1>
+        <p>المدة: ${period}</p>
+        <p>التاريخ: ${new Date().toISOString().slice(0, 10)}</p>
+    </div>
+    <div class="content">`;
+    
+  if (type === 'summaries') {
+    html += `
+        <table>
+            <tr><td>إجمالي المبيعات</td><td class="currency">${formatNumber(data.totalSales)} ريال</td></tr>
+            <tr><td>إجمالي التسديدات</td><td class="currency">${formatNumber(data.totalPayments)} ريال</td></tr>
+            <tr><td>إجمالي المصروفات</td><td class="currency">${formatNumber(data.totalExpenses)} ريال</td></tr>
+        </table>`;
+  } else if (type === 'debts') {
+    html += `
+        <table>
+            <thead>
+                <tr>
+                    <th>اسم المحل</th>
+                    <th>إجمالي المبيعات</th>
+                    <th>المدفوع</th>
+                    <th>المتبقي</th>
+                </tr>
+            </thead>
+            <tbody>`;
+    data.forEach(row => {
+      html += `
+                <tr>
+                    <td>${row['اسم المحل']}</td>
+                    <td class="currency">${formatNumber(row['إجمالي المبيعات'])} ريال</td>
+                    <td class="currency">${formatNumber(row['المدفوع'])} ريال</td>
+                    <td class="currency">${formatNumber(row['المتبقي'])} ريال</td>
+                </tr>`;
+    });
+    html += `
+            </tbody>
+        </table>`;
+  } else if (type === 'profit') {
+    html += `
+        <table>
+            <thead>
+                <tr>
+                    <th>الوصف</th>
+                    <th>المبلغ</th>
+                </tr>
+            </thead>
+            <tbody>`;
+    data.forEach(row => {
+      html += `
+                <tr>
+                    <td>${row['الوصف']}</td>
+                    <td class="currency">${formatNumber(row['المبلغ'])} ريال</td>
+                </tr>`;
+    });
+    html += `
+            </tbody>
+        </table>`;
+  }
+  
+  html += `
+    </div>
+</body>
+</html>`;
+  
+  return html;
+}
+
+// دالة مساعدة لفتح نافذة الطباعة
+function openPrintWindow(html) {
+  try {
+    const win = window.open('', '_blank');
+    if (!win || !win.document) {
+      showNotification('يمنع المتصفح النوافذ المنبثقة. الرجاء السماح بها.', 'error');
+      return;
+    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    showNotification('تم فتح صفحة الطباعة', 'success');
+  } catch (e) {
+    showNotification('حدث خطأ أثناء فتح صفحة الطباعة', 'error');
+  }
+}
+
+// دوال توليد البيانات للتصدير
+function generateDebtReportData() {
+  const table = document.getElementById('debtReportTable');
+  const data = [];
+  if (table) {
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length >= 4) {
+        data.push({
+          'اسم المحل': cells[0].textContent.trim(),
+          'إجمالي المبيعات': parseFormattedNumber(cells[1].textContent),
+          'المدفوع': parseFormattedNumber(cells[2].textContent),
+          'المتبقي': parseFormattedNumber(cells[3].textContent)
+        });
+      }
+    });
+  }
+  return data;
+}
+
+function generateProfitReportData() {
+  const totalSales = parseFormattedNumber(document.getElementById('totalSalesReport')?.textContent || '0');
+  const totalPayments = parseFormattedNumber(document.getElementById('totalPaymentsReport')?.textContent || '0');
+  const totalExpenses = parseFormattedNumber(document.getElementById('totalExpensesReport')?.textContent || '0');
+  const netProfit = parseFormattedNumber(document.getElementById('netProfitReport')?.textContent || '0');
+  
+  return [
+    { 'الوصف': 'إجمالي المبيعات', 'المبلغ': totalSales },
+    { 'الوصف': 'إجمالي التسديدات', 'المبلغ': totalPayments },
+    { 'الوصف': 'إجمالي المصروفات', 'المبلغ': totalExpenses },
+    { 'الوصف': 'صافي الربح/الخسارة', 'المبلغ': netProfit }
+  ];
+}
+
+// ربط معالجات الأحداث للتقارير الإضافية
+function wireAdditionalReportsExports() {
+  // ملخصات مرئية
+  const summariesExcel = document.getElementById('exportSummariesExcel');
+  const summariesTxt = document.getElementById('exportSummariesTxt');
+  const summariesPdf = document.getElementById('exportSummariesPdf');
+  const summariesPrint = document.getElementById('openSummariesReport');
+  
+  if (summariesExcel && !summariesExcel.dataset._wired) {
+    summariesExcel.addEventListener('click', () => exportSummaries('excel'));
+    summariesExcel.dataset._wired = '1';
+  }
+  if (summariesTxt && !summariesTxt.dataset._wired) {
+    summariesTxt.addEventListener('click', () => exportSummaries('txt'));
+    summariesTxt.dataset._wired = '1';
+  }
+  if (summariesPdf && !summariesPdf.dataset._wired) {
+    summariesPdf.addEventListener('click', () => exportSummaries('pdf'));
+    summariesPdf.dataset._wired = '1';
+  }
+  if (summariesPrint && !summariesPrint.dataset._wired) {
+    summariesPrint.addEventListener('click', () => exportSummaries('print'));
+    summariesPrint.dataset._wired = '1';
+  }
+  
+  // تقرير الديون
+  const debtsExcel = document.getElementById('exportDebtsExcel');
+  const debtsTxt = document.getElementById('exportDebtsTxt');
+  const debtsPdf = document.getElementById('exportDebtsPdf');
+  const debtsPrint = document.getElementById('openDebtsReport');
+  
+  if (debtsExcel && !debtsExcel.dataset._wired) {
+    debtsExcel.addEventListener('click', () => exportDebts('excel'));
+    debtsExcel.dataset._wired = '1';
+  }
+  if (debtsTxt && !debtsTxt.dataset._wired) {
+    debtsTxt.addEventListener('click', () => exportDebts('txt'));
+    debtsTxt.dataset._wired = '1';
+  }
+  if (debtsPdf && !debtsPdf.dataset._wired) {
+    debtsPdf.addEventListener('click', () => exportDebts('pdf'));
+    debtsPdf.dataset._wired = '1';
+  }
+  if (debtsPrint && !debtsPrint.dataset._wired) {
+    debtsPrint.addEventListener('click', () => exportDebts('print'));
+    debtsPrint.dataset._wired = '1';
+  }
+  
+  // تقرير الأرباح
+  const profitExcel = document.getElementById('exportProfitExcel');
+  const profitTxt = document.getElementById('exportProfitTxt');
+  const profitPdf = document.getElementById('exportProfitPdf');
+  const profitPrint = document.getElementById('openProfitReport');
+  
+  if (profitExcel && !profitExcel.dataset._wired) {
+    profitExcel.addEventListener('click', () => exportProfit('excel'));
+    profitExcel.dataset._wired = '1';
+  }
+  if (profitTxt && !profitTxt.dataset._wired) {
+    profitTxt.addEventListener('click', () => exportProfit('txt'));
+    profitTxt.dataset._wired = '1';
+  }
+  if (profitPdf && !profitPdf.dataset._wired) {
+    profitPdf.addEventListener('click', () => exportProfit('pdf'));
+    profitPdf.dataset._wired = '1';
+  }
+  if (profitPrint && !profitPrint.dataset._wired) {
+    profitPrint.addEventListener('click', () => exportProfit('print'));
+    profitPrint.dataset._wired = '1';
+  }
+  
+  // معالجات تغيير الفترة
+  const summariesPeriod = document.getElementById('summariesPeriod');
+  const debtsPeriod = document.getElementById('debtsPeriod');
+  const profitPeriod = document.getElementById('profitPeriod');
+  
+  if (summariesPeriod && !summariesPeriod.dataset._wired) {
+    summariesPeriod.addEventListener('change', () => {
+      syncCustomRange('summaries');
+      if (summariesPeriod.value !== 'custom') {
+        renderQuickSummaries();
+      }
+    });
+    summariesPeriod.dataset._wired = '1';
+  }
+  
+  if (debtsPeriod && !debtsPeriod.dataset._wired) {
+    debtsPeriod.addEventListener('change', () => {
+      syncCustomRange('debts');
+      if (debtsPeriod.value !== 'custom') {
+        generateDebtReport();
+      }
+    });
+    debtsPeriod.dataset._wired = '1';
+  }
+  
+  if (profitPeriod && !profitPeriod.dataset._wired) {
+    profitPeriod.addEventListener('change', () => {
+      syncCustomRange('profit');
+      if (profitPeriod.value !== 'custom') {
+        updateProfitReport();
+      }
+    });
+    profitPeriod.dataset._wired = '1';
+  }
+  
+  // معالجات أزرار تطبيق النطاق المخصص
+  const summariesApply = document.getElementById('applySummariesRange');
+  const debtsApply = document.getElementById('applyDebtsRange');
+  const profitApply = document.getElementById('applyProfitRange');
+  
+  if (summariesApply && !summariesApply.dataset._wired) {
+    summariesApply.addEventListener('click', () => renderQuickSummaries());
+    summariesApply.dataset._wired = '1';
+  }
+  
+  if (debtsApply && !debtsApply.dataset._wired) {
+    debtsApply.addEventListener('click', () => generateDebtReport());
+    debtsApply.dataset._wired = '1';
+  }
+  
+  if (profitApply && !profitApply.dataset._wired) {
+    profitApply.addEventListener('click', () => updateProfitReport());
+    profitApply.dataset._wired = '1';
+  }
+}
+
+// دالة مساعدة لمزامنة ظهور النطاق المخصص
+function syncCustomRange(reportType) {
+  const periodSelect = document.getElementById(`${reportType}Period`);
+  const customRange = document.getElementById(`${reportType}CustomRange`);
+  
+  if (periodSelect && customRange) {
+    customRange.style.display = periodSelect.value === 'custom' ? '' : 'none';
+  }
+}
+
 if (typeof window !== 'undefined'){
-	document.addEventListener('DOMContentLoaded', ()=>{ initReportsControls(); });
+	document.addEventListener('DOMContentLoaded', ()=>{ 
+    initReportsControls(); 
+    wireAdditionalReportsExports();
+    // مزامنة النطاقات المخصصة عند التحميل
+    syncCustomRange('summaries');
+    syncCustomRange('debts');
+    syncCustomRange('profit');
+  });
 	document.addEventListener('app-data-loaded', ()=>{ initReportsControls(); });
 }

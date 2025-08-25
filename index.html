@@ -764,6 +764,34 @@
                     <div class="card mb-3" id="quickSummariesCard">
                         <div class="card-header bg-light">ملخصات مرئية</div>
                         <div class="card-body">
+                            <div class="row g-2 align-items-end mb-3">
+                                <div class="col-12 col-md-auto">
+                                    <label class="form-label mb-1">المدة</label>
+                                    <select id="summariesPeriod" class="form-select form-select-sm" style="min-width:160px;">
+                                        <option value="from_start">من البداية</option>
+                                        <option value="day">خلال يوم</option>
+                                        <option value="week">خلال أسبوع</option>
+                                        <option value="month">خلال شهر</option>
+                                        <option value="this_month" selected>خلال هذا الشهر</option>
+                                        <option value="prev_month">خلال الشهر السابق</option>
+                                        <option value="custom">مدى مخصص</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto" id="summariesCustomRange" style="display:none;">
+                                    <label class="form-label mb-1 d-block">نطاق التاريخ</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" id="summariesFromDate" class="form-control form-control-sm" />
+                                        <input type="date" id="summariesToDate" class="form-control form-control-sm" />
+                                        <button class="btn btn-sm btn-primary" id="applySummariesRange" type="button">تطبيق</button>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-auto ms-auto d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-success" id="exportSummariesExcel"><i class="fas fa-file-excel me-1"></i>Excel</button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="exportSummariesTxt"><i class="fas fa-file-alt me-1"></i>مستند</button>
+                                    <button class="btn btn-sm btn-outline-danger" id="exportSummariesPdf"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                                    <button class="btn btn-sm btn-outline-primary" id="openSummariesReport"><i class="fas fa-file-alt me-1"></i>فتح التقرير</button>
+                                </div>
+                            </div>
                             <div class="row g-3">
                                 <div class="col-12 col-md-4">
                                     <h6 class="mb-2 d-flex justify-content-between"><span>المبيعات</span><span class="currency" id="quickSalesTotal">0</span></h6>
@@ -786,6 +814,34 @@
                             تقرير الديون للمحلات <small class="text-white-50">(الفترة الحالية)</small>
                         </div>
                         <div class="card-body">
+                            <div class="row g-2 align-items-end mb-3">
+                                <div class="col-12 col-md-auto">
+                                    <label class="form-label mb-1">المدة</label>
+                                    <select id="debtsPeriod" class="form-select form-select-sm" style="min-width:160px;">
+                                        <option value="from_start">من البداية</option>
+                                        <option value="day">خلال يوم</option>
+                                        <option value="week">خلال أسبوع</option>
+                                        <option value="month">خلال شهر</option>
+                                        <option value="this_month" selected>خلال هذا الشهر</option>
+                                        <option value="prev_month">خلال الشهر السابق</option>
+                                        <option value="custom">مدى مخصص</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto" id="debtsCustomRange" style="display:none;">
+                                    <label class="form-label mb-1 d-block">نطاق التاريخ</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" id="debtsFromDate" class="form-control form-control-sm" />
+                                        <input type="date" id="debtsToDate" class="form-control form-control-sm" />
+                                        <button class="btn btn-sm btn-primary" id="applyDebtsRange" type="button">تطبيق</button>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-auto ms-auto d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-success" id="exportDebtsExcel"><i class="fas fa-file-excel me-1"></i>Excel</button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="exportDebtsTxt"><i class="fas fa-file-alt me-1"></i>مستند</button>
+                                    <button class="btn btn-sm btn-outline-danger" id="exportDebtsPdf"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                                    <button class="btn btn-sm btn-outline-primary" id="openDebtsReport"><i class="fas fa-file-alt me-1"></i>فتح التقرير</button>
+                                </div>
+                            </div>
                             <div class="d-flex justify-content-end mb-2"><span class="me-2">إجمالي الديون:</span><span id="debtsTotalSummary" class="currency">0</span></div>
                             <div class="table-responsive">
                                 <table class="data-table">
@@ -812,6 +868,34 @@
                             تقرير الأرباح والخسائر <small class="text-dark-50">(الفترة الحالية)</small>
                         </div>
                         <div class="card-body">
+                            <div class="row g-2 align-items-end mb-3">
+                                <div class="col-12 col-md-auto">
+                                    <label class="form-label mb-1">المدة</label>
+                                    <select id="profitPeriod" class="form-select form-select-sm" style="min-width:160px;">
+                                        <option value="from_start">من البداية</option>
+                                        <option value="day">خلال يوم</option>
+                                        <option value="week">خلال أسبوع</option>
+                                        <option value="month">خلال شهر</option>
+                                        <option value="this_month" selected>خلال هذا الشهر</option>
+                                        <option value="prev_month">خلال الشهر السابق</option>
+                                        <option value="custom">مدى مخصص</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto" id="profitCustomRange" style="display:none;">
+                                    <label class="form-label mb-1 d-block">نطاق التاريخ</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" id="profitFromDate" class="form-control form-control-sm" />
+                                        <input type="date" id="profitToDate" class="form-control form-control-sm" />
+                                        <button class="btn btn-sm btn-primary" id="applyProfitRange" type="button">تطبيق</button>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-auto ms-auto d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-success" id="exportProfitExcel"><i class="fas fa-file-excel me-1"></i>Excel</button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="exportProfitTxt"><i class="fas fa-file-alt me-1"></i>مستند</button>
+                                    <button class="btn btn-sm btn-outline-danger" id="exportProfitPdf"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                                    <button class="btn btn-sm btn-outline-primary" id="openProfitReport"><i class="fas fa-file-alt me-1"></i>فتح التقرير</button>
+                                </div>
+                            </div>
                             <div class="table-responsive">
                                 <table class="data-table">
                                     <thead>
