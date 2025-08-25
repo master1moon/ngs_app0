@@ -3877,6 +3877,105 @@
         // تصدير الدالة للنطاق العام
         window.cleanupModalBackdrops = cleanupModalBackdrops;
         
+        // دوال التواصل مع المحلات عبر الهاتف
+        
+        /**
+         * إجراء مكالمة هاتفية
+         */
+        function makePhoneCall(phoneNumber) {
+            window.location.href = `tel:${phoneNumber}`;
+        }
+        
+        /**
+         * إرسال رسالة نصية بالرصيد الحالي
+         */
+        function sendBalanceSMS(phoneNumber, balance, storeName) {
+            const status = balance >= 0 ? 'دائن' : 'مدين';
+            const message = encodeURIComponent(
+                `السلام عليكم،\n` +
+                `محل: ${storeName}\n` +
+                `الرصيد الحالي: ${formatNumber(Math.abs(balance))} ريال\n` +
+                `الحالة: ${status}\n` +
+                `تاريخ: ${new Date().toLocaleDateString('ar-YE')}`
+            );
+            window.location.href = `sms:${phoneNumber}?body=${message}`;
+        }
+        
+        /**
+         * إرسال رسالة نصية بتفاصيل المبيعات والمدفوعات
+         */
+        function sendDetailsSMS(storeId) {
+            const store = data.stores.find(s => s.id === storeId);
+            if (!store || !store.phone) return;
+            
+            const sales = data.sales.filter(s => s.storeId === storeId);
+            const payments = data.payments.filter(p => p.storeId === storeId);
+            const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+            const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
+            const balance = totalSales - totalPayments;
+            
+            // تجهيز ملخص المبيعات
+            const lastSales = sales.slice(-3).map(s => 
+                `- ${s.date}: ${formatNumber(s.total)} ريال`
+            ).join('\n');
+            
+            // تجهيز ملخص المدفوعات
+            const lastPayments = payments.slice(-3).map(p => 
+                `- ${p.date}: ${formatNumber(p.amount)} ريال`
+            ).join('\n');
+            
+            const message = encodeURIComponent(
+                `تقرير محل: ${store.name}\n` +
+                `━━━━━━━━━━━━━\n` +
+                `إجمالي المبيعات: ${formatNumber(totalSales)} ريال\n` +
+                `إجمالي المدفوعات: ${formatNumber(totalPayments)} ريال\n` +
+                `الرصيد: ${formatNumber(Math.abs(balance))} ريال ${balance >= 0 ? 'دائن' : 'مدين'}\n\n` +
+                `آخر المبيعات:\n${lastSales || 'لا توجد مبيعات'}\n\n` +
+                `آخر المدفوعات:\n${lastPayments || 'لا توجد مدفوعات'}\n\n` +
+                `تاريخ التقرير: ${new Date().toLocaleDateString('ar-YE')}`
+            );
+            
+            window.location.href = `sms:${store.phone}?body=${message}`;
+        }
+        
+        /**
+         * مشاركة تقرير المحل عبر واتساب
+         */
+        function shareViaWhatsApp(storeId) {
+            const store = data.stores.find(s => s.id === storeId);
+            if (!store || !store.phone) return;
+            
+            const sales = data.sales.filter(s => s.storeId === storeId);
+            const payments = data.payments.filter(p => p.storeId === storeId);
+            const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+            const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
+            const balance = totalSales - totalPayments;
+            
+            // إنشاء رابط للتقرير
+            const reportUrl = window.location.origin + window.location.pathname + `#store-report-${storeId}`;
+            
+            const message = encodeURIComponent(
+                `*تقرير محل ${store.name}*\n` +
+                `━━━━━━━━━━━━━\n` +
+                `📊 *إجمالي المبيعات:* ${formatNumber(totalSales)} ريال\n` +
+                `💰 *إجمالي المدفوعات:* ${formatNumber(totalPayments)} ريال\n` +
+                `💳 *الرصيد الحالي:* ${formatNumber(Math.abs(balance))} ريال ${balance >= 0 ? '✅ دائن' : '❌ مدين'}\n\n` +
+                `📅 *تاريخ التقرير:* ${new Date().toLocaleDateString('ar-YE')}\n\n` +
+                `🔗 *رابط التقرير الكامل:*\n${reportUrl}\n\n` +
+                `_تم إنشاء هذا التقرير بواسطة نظام إدارة المبيعات_`
+            );
+            
+            // فتح واتساب مع الرسالة
+            const whatsappUrl = `https://wa.me/${store.phone.replace(/^0/, '967')}?text=${message}`;
+            window.open(whatsappUrl, '_blank');
+        }
+        
+        // تصدير دوال التواصل
+        window.makePhoneCall = makePhoneCall;
+        window.sendBalanceSMS = sendBalanceSMS;
+        window.sendDetailsSMS = sendDetailsSMS;
+        window.shareViaWhatsApp = shareViaWhatsApp;
+        
         document.addEventListener('DOMContentLoaded', function() {
             // تحميل البيانات
             loadData();
