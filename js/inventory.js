@@ -230,3 +230,6 @@ function saveInventory() {
   updateDashboard();
   const modal = bootstrap.Modal.getInstance(document.getElementById('inventoryModal')); modal.hide();
 }
+
+// تصدير الدوال للنطاق العام
+window.renderInventoryTable = renderInventoryTable;

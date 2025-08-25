@@ -4092,6 +4092,35 @@
         window.copyToClipboard = copyToClipboard;
         window.downloadReport = downloadReport;
         
+        // تصدير دوال التحديث
+        window.updateDashboard = updateDashboard;
+        window.updateProfitReport = updateProfitReport;
+        window.generateDebtReport = generateDebtReport;
+        window.updateReportStores = updateReportStores;
+        
+        // دالة مساعدة لتحديث جميع الأقسام
+        function updateAllSections() {
+            updateDashboard();
+            updateProfitReport();
+            generateDebtReport();
+            if (typeof generatePartnerReports === 'function') {
+                generatePartnerReports();
+            }
+            if (typeof renderStoresList === 'function') {
+                renderStoresList();
+            }
+            if (typeof renderPackagesTable === 'function') {
+                renderPackagesTable();
+            }
+            if (typeof renderInventoryTable === 'function') {
+                renderInventoryTable();
+            }
+            if (typeof renderExpensesTable === 'function') {
+                renderExpensesTable();
+            }
+        }
+        window.updateAllSections = updateAllSections;
+        
         document.addEventListener('DOMContentLoaded', function() {
             // تحميل البيانات
             loadData();

@@ -540,3 +540,11 @@ function saveStore() {
     addPackage();
   });
 })();
+
+// تصدير الدوال للنطاق العام
+window.renderStoresList = renderStoresList;
+window.showStoreDetails = showStoreDetails;
+window.addStore = addStore;
+window.editStore = editStore;
+window.deleteStore = deleteStore;
+window.saveStore = saveStore;

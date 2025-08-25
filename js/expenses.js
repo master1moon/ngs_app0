@@ -362,3 +362,6 @@ function renderExpensesTable() {
   if (addCustomBtn) addCustomBtn.addEventListener('click', () => { const inp = document.getElementById('expenseTypeCustom'); const val = (inp?.value || '').trim(); if (!val) return; const types = getAllExpenseTypes(); if (!types.includes(val)) saveExpenseTypes([...(loadSavedExpenseTypes()), val]); selectExpenseType(val); if (inp) inp.value = ''; });
   const expenseModalEl = document.getElementById('expenseModal'); if (expenseModalEl) expenseModalEl.addEventListener('show.bs.modal', () => { const currentVal = document.getElementById('expenseType')?.value || ''; renderExpenseTypeChips(currentVal); });
 })();
+
+// تصدير الدوال للنطاق العام
+window.renderExpensesTable = () => renderExpensesControls(renderExpensesTable());

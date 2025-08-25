@@ -197,3 +197,6 @@ function savePackage() {
   updateDashboard();
   const modal = bootstrap.Modal.getInstance(document.getElementById('packageModal')); modal.hide();
 }
+
+// تصدير الدوال للنطاق العام
+window.renderPackagesTable = renderPackagesTable;
