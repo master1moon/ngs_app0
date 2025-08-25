@@ -3902,11 +3902,11 @@
         }
         
         /**
-         * إرسال رسالة نصية بتفاصيل المبيعات والمدفوعات
+         * مشاركة تقرير المحل عبر Web Share API
          */
-        function sendDetailsSMS(storeId) {
+        function shareReport(storeId) {
             const store = data.stores.find(s => s.id === storeId);
-            if (!store || !store.phone) return;
+            if (!store) return;
             
             const sales = data.sales.filter(s => s.storeId === storeId);
             const payments = data.payments.filter(p => p.storeId === storeId);
@@ -3914,28 +3914,142 @@
             const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
             const balance = totalSales - totalPayments;
             
-            // تجهيز ملخص المبيعات
-            const lastSales = sales.slice(-3).map(s => 
-                `- ${s.date}: ${formatNumber(s.total)} ريال`
-            ).join('\n');
-            
-            // تجهيز ملخص المدفوعات
-            const lastPayments = payments.slice(-3).map(p => 
-                `- ${p.date}: ${formatNumber(p.amount)} ريال`
-            ).join('\n');
-            
-            const message = encodeURIComponent(
+            // إنشاء نص التقرير
+            const reportText = 
                 `تقرير محل: ${store.name}\n` +
                 `━━━━━━━━━━━━━\n` +
                 `إجمالي المبيعات: ${formatNumber(totalSales)} ريال\n` +
                 `إجمالي المدفوعات: ${formatNumber(totalPayments)} ريال\n` +
-                `الرصيد: ${formatNumber(Math.abs(balance))} ريال ${balance >= 0 ? 'دائن' : 'مدين'}\n\n` +
-                `آخر المبيعات:\n${lastSales || 'لا توجد مبيعات'}\n\n` +
-                `آخر المدفوعات:\n${lastPayments || 'لا توجد مدفوعات'}\n\n` +
-                `تاريخ التقرير: ${new Date().toLocaleDateString('ar-YE')}`
-            );
+                `الرصيد الحالي: ${formatNumber(Math.abs(balance))} ريال ${balance >= 0 ? 'دائن' : 'مدين'}\n\n` +
+                `تاريخ التقرير: ${new Date().toLocaleDateString('ar-YE')}\n\n` +
+                `تم إنشاء هذا التقرير بواسطة نظام إدارة المبيعات`;
             
-            window.location.href = `sms:${store.phone}?body=${message}`;
+            // إنشاء رابط للتقرير
+            const reportUrl = window.location.origin + window.location.pathname + `#store-report-${storeId}`;
+            
+            // التحقق من دعم Web Share API
+            if (navigator.share) {
+                navigator.share({
+                    title: `تقرير محل ${store.name}`,
+                    text: reportText,
+                    url: reportUrl
+                })
+                .then(() => {
+                    showNotification('تم مشاركة التقرير بنجاح', 'success');
+                })
+                .catch((error) => {
+                    // إذا ألغى المستخدم المشاركة
+                    if (error.name !== 'AbortError') {
+                        console.error('خطأ في المشاركة:', error);
+                        fallbackShare(reportText, reportUrl);
+                    }
+                });
+            } else {
+                // بديل للمتصفحات التي لا تدعم Web Share API
+                fallbackShare(reportText, reportUrl);
+            }
+        }
+        
+        /**
+         * بديل للمشاركة في حالة عدم دعم Web Share API
+         */
+        function fallbackShare(text, url) {
+            // إنشاء نافذة منبثقة مع خيارات المشاركة
+            const shareOptions = `
+                <div class="text-center">
+                    <h5 class="mb-3">مشاركة التقرير</h5>
+                    <div class="d-flex justify-content-center gap-3 mb-3">
+                        <button class="btn btn-primary" onclick="copyToClipboard('${escape(text)}', '${escape(url)}')">
+                            <i class="fas fa-copy"></i> نسخ التقرير
+                        </button>
+                        <button class="btn btn-info" onclick="downloadReport('${escape(text)}')">
+                            <i class="fas fa-download"></i> تحميل كملف
+                        </button>
+                    </div>
+                    <small class="text-muted">يمكنك نسخ التقرير ولصقه في أي تطبيق</small>
+                </div>
+            `;
+            
+            // عرض النافذة المنبثقة
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            ${shareOptions}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // إزالة النافذة عند الإغلاق
+            modal.addEventListener('hidden.bs.modal', () => {
+                modal.remove();
+            });
+        }
+        
+        /**
+         * نسخ التقرير إلى الحافظة
+         */
+        function copyToClipboard(text, url) {
+            const fullText = unescape(text) + '\n\nرابط التقرير:\n' + unescape(url);
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(fullText)
+                    .then(() => {
+                        showNotification('تم نسخ التقرير إلى الحافظة', 'success');
+                        // إغلاق النافذة المنبثقة
+                        const modal = bootstrap.Modal.getInstance(document.querySelector('.modal'));
+                        if (modal) modal.hide();
+                    })
+                    .catch(err => {
+                        console.error('خطأ في النسخ:', err);
+                        showNotification('فشل نسخ التقرير', 'error');
+                    });
+            } else {
+                // طريقة بديلة للنسخ
+                const textArea = document.createElement('textarea');
+                textArea.value = fullText;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    showNotification('تم نسخ التقرير إلى الحافظة', 'success');
+                    const modal = bootstrap.Modal.getInstance(document.querySelector('.modal'));
+                    if (modal) modal.hide();
+                } catch (err) {
+                    showNotification('فشل نسخ التقرير', 'error');
+                }
+                
+                document.body.removeChild(textArea);
+            }
+        }
+        
+        /**
+         * تحميل التقرير كملف نصي
+         */
+        function downloadReport(text) {
+            const decodedText = unescape(text);
+            const blob = new Blob([decodedText], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `تقرير_محل_${new Date().toISOString().slice(0, 10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showNotification('تم تحميل التقرير', 'success');
+            const modal = bootstrap.Modal.getInstance(document.querySelector('.modal'));
+            if (modal) modal.hide();
         }
         
         /**
@@ -3973,8 +4087,10 @@
         // تصدير دوال التواصل
         window.makePhoneCall = makePhoneCall;
         window.sendBalanceSMS = sendBalanceSMS;
-        window.sendDetailsSMS = sendDetailsSMS;
+        window.shareReport = shareReport;
         window.shareViaWhatsApp = shareViaWhatsApp;
+        window.copyToClipboard = copyToClipboard;
+        window.downloadReport = downloadReport;
         
         document.addEventListener('DOMContentLoaded', function() {
             // تحميل البيانات
