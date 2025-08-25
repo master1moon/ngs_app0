@@ -128,6 +128,82 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * اختيار جهة اتصال من الجهاز
+ * يستخدم Contact Picker API المتاحة في المتصفحات الحديثة
+ */
+async function selectContactPhone() {
+  // التحقق من دعم المتصفح لـ Contact Picker API
+  if (!('contacts' in navigator && 'ContactsManager' in window)) {
+    // إذا لم تكن مدعومة، نعرض رسالة توضيحية
+    showNotification('متصفحك لا يدعم الوصول لجهات الاتصال. يرجى إدخال الرقم يدوياً.', 'info');
+    return;
+  }
+  
+  try {
+    // طلب الإذن واختيار جهة اتصال
+    const props = ['name', 'tel'];
+    const opts = { multiple: false };
+    
+    const contacts = await navigator.contacts.select(props, opts);
+    
+    if (contacts.length > 0) {
+      const contact = contacts[0];
+      
+      // الحصول على رقم الهاتف
+      if (contact.tel && contact.tel.length > 0) {
+        let phoneNumber = contact.tel[0];
+        
+        // تنظيف رقم الهاتف من الرموز والمسافات
+        phoneNumber = phoneNumber.replace(/[\s\-\(\)\+]/g, '');
+        
+        // إذا كان الرقم يبدأ بـ 966 (رمز السعودية)، نحوله للصيغة المحلية
+        if (phoneNumber.startsWith('966')) {
+          phoneNumber = '0' + phoneNumber.substring(3);
+        }
+        
+        // التحقق من أن الرقم يبدأ بـ 05
+        if (!phoneNumber.startsWith('05') && phoneNumber.startsWith('5')) {
+          phoneNumber = '0' + phoneNumber;
+        }
+        
+        // وضع الرقم في الحقل
+        document.getElementById('storePhone').value = phoneNumber;
+        
+        // عرض اسم جهة الاتصال إذا كان متاحاً
+        if (contact.name && contact.name.length > 0) {
+          showNotification(`تم اختيار رقم: ${contact.name[0]}`, 'success');
+        } else {
+          showNotification('تم اختيار رقم الهاتف بنجاح', 'success');
+        }
+      } else {
+        showNotification('جهة الاتصال المختارة لا تحتوي على رقم هاتف', 'warning');
+      }
+    }
+  } catch (error) {
+    console.error('خطأ في اختيار جهة الاتصال:', error);
+    
+    // معالجة الأخطاء المختلفة
+    if (error.name === 'SecurityError') {
+      showNotification('يجب استخدام HTTPS للوصول لجهات الاتصال', 'error');
+    } else if (error.name === 'NotAllowedError') {
+      showNotification('تم رفض الوصول لجهات الاتصال', 'error');
+    } else {
+      showNotification('حدث خطأ في اختيار جهة الاتصال', 'error');
+    }
+  }
+}
+
+// ربط زر اختيار جهة الاتصال
+if (typeof window !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', function() {
+    const selectContactBtn = document.getElementById('selectContactBtn');
+    if (selectContactBtn) {
+      selectContactBtn.addEventListener('click', selectContactPhone);
+    }
+  });
+}
+
+/**
  * عرض تفاصيل محل محدد
  * يعرض الرصيد الحالي، نوع السعر، جدول المبيعات والمدفوعات
  * يحسب إجمالي المبيعات والمدفوعات والرصيد المتبقي
