@@ -1,8 +1,20 @@
 // دوال DOM آمنة ومحسّنة للمشروع
+
+/**
+ * مكتبة التعامل الآمن مع DOM
+ * توفر دوال لإنشاء عناصر HTML بطريقة آمنة
+ * تحمي من هجمات XSS عبر تعقيم النصوص
+ * تدعم العرض الافتراضي للجداول الكبيرة
+ */
 (function() {
     'use strict';
 
-    // تعقيم النص الأساسي
+    /**
+     * تعقيم النص لحمايته من XSS
+     * يحول الأحرف الخاصة في HTML إلى كيانات HTML
+     * @param {*} text - النص المراد تعقيمه
+     * @returns {string} النص المعقم
+     */
     function e(text) {
         if (text == null) return '';
         const map = {
@@ -15,7 +27,15 @@
         return String(text).replace(/[&<>"']/g, m => map[m]);
     }
 
-    // إنشاء صف جدول آمن مع الأزرار
+    /**
+     * إنشاء صف جدول آمن مع أزرار التحكم
+     * يعقم جميع البيانات تلقائياً
+     * يدعم إضافة HTML موثوق فقط
+     * ينشئ أزرار مع معالجات الأحداث
+     * @param {Array} data - بيانات الخلايا
+     * @param {Array} buttons - تكوينات الأزرار
+     * @returns {HTMLTableRowElement} عنصر الصف
+     */
     function createTableRow(data, buttons = []) {
         const tr = document.createElement('tr');
         
@@ -74,7 +94,14 @@
         return tr;
     }
 
-    // إنشاء بطاقة معلومات آمنة
+    /**
+     * إنشاء بطاقة معلومات آمنة
+     * يعرض معلومات بتنسيق بطاقة
+     * جميع النصوص تعقم تلقائياً
+     * @param {string} title - عنوان البطاقة
+     * @param {Array} items - عناصر المعلومات
+     * @returns {HTMLDivElement} عنصر البطاقة
+     */
     function createInfoCard(title, items) {
         const card = document.createElement('div');
         card.className = 'info-card';
@@ -106,7 +133,15 @@
         return card;
     }
 
-    // إنشاء خيارات select آمنة
+    /**
+     * ملء قائمة select بخيارات آمنة
+     * يفرغ القائمة أولاً ثم يضيف الخيارات
+     * جميع النصوص تعقم تلقائياً
+     * @param {HTMLSelectElement} selectElement - عنصر select
+     * @param {Array} options - قائمة الخيارات
+     * @param {string} defaultText - نص الخيار الافتراضي
+     * @param {*} selectedValue - القيمة المحددة مسبقاً
+     */
     function fillSelect(selectElement, options, defaultText = 'اختر...', selectedValue = null) {
         // إفراغ القائمة
         while (selectElement.firstChild) {
@@ -135,7 +170,14 @@
         });
     }
 
-    // تحديث محتوى العنصر بأمان
+    /**
+     * تحديث محتوى عنصر بطريقة آمنة
+     * يستخدم textContent بشكل افتراضي
+     * يسمح بـ innerHTML فقط للمحتوى الموثوق
+     * @param {string} elementId - معرف العنصر
+     * @param {*} content - المحتوى الجديد
+     * @param {boolean} isHtml - هل المحتوى HTML موثوق
+     */
     function safeUpdate(elementId, content, isHtml = false) {
         const element = document.getElementById(elementId);
         if (!element) return;
@@ -151,7 +193,15 @@
         }
     }
 
-    // إنشاء عنصر div/span آمن مع محتوى
+    /**
+     * إنشاء عنصر HTML آمن مع محتوى
+     * يدعم النصوص، العقد، والمصفوفات
+     * جميع النصوص تعقم تلقائياً
+     * @param {string} className - فئة CSS
+     * @param {*} content - المحتوى
+     * @param {string} tag - نوع العنصر HTML
+     * @returns {HTMLElement} العنصر المنشأ
+     */
     function createDiv(className, content, tag = 'div') {
         const element = document.createElement(tag);
         if (className) element.className = className;

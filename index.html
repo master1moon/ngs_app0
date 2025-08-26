@@ -320,6 +320,33 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
+        /* أنماط أزرار الإجراءات في تقرير الشركاء */
+        .partner-report-card .btn-sm {
+            padding: 0.25rem 0.5rem;
+            margin: 0 0.125rem;
+            font-size: 0.875rem;
+        }
+        
+        .partner-report-card .table td {
+            vertical-align: middle;
+        }
+        
+        .partner-report-card .table th:last-child,
+        .partner-report-card .table td:last-child {
+            text-align: center;
+            white-space: nowrap;
+        }
+        
+        .partner-report-card .btn-outline-primary:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .partner-report-card .btn-outline-danger:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+        
         .partner-report-header {
             display: flex;
             justify-content: space-between;
@@ -432,6 +459,77 @@
 
         body.drawer-open{ overflow: hidden; }
         @media (max-width: 768px){ .main-content{ padding:12px; height: calc(100vh - 48px); overflow-y:auto; -webkit-overflow-scrolling: touch; } }
+        
+        /* أنماط قسم المحلات المحسّنة */
+        .stores-list-container {
+            border: 1px solid #e3e6f0;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .stores-list-container .list-group-item {
+            border: none;
+            border-bottom: 1px solid #e3e6f0;
+            transition: all 0.3s ease;
+        }
+        
+        .stores-list-container .list-group-item:last-child {
+            border-bottom: none;
+        }
+        
+        .stores-list-container .list-group-item:hover {
+            background-color: #f1f3f5;
+            transform: translateX(-5px);
+        }
+        
+        .stores-list-container .list-group-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .stores-list-container .list-group-item.active .text-muted {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+        
+        .stores-list-container .list-group-item.active .text-success {
+            color: #a3e4a3 !important;
+        }
+        
+        .stores-list-container .list-group-item.active .text-danger {
+            color: #f8b4b4 !important;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            height: 100%;
+            border: 2px solid #e3e6f0;
+            transition: all 0.3s ease;
+        }
+        
+        .info-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .info-card.border-success {
+            border-color: #28a745;
+        }
+        
+        .info-card.border-danger {
+            border-color: #dc3545;
+        }
+        
+        .info-card i {
+            font-size: 2rem;
+        }
+        
+        .info-card h6 {
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
       </style>
 </head>
 <body>
@@ -659,8 +757,38 @@
                     
                     <div class="row">
                         <div class="col-md-4">
-                            <div id="storesList" class="list-group">
-                                <!-- سيتم ملؤه بالبيانات -->
+                            <!-- شريط البحث والفلاتر -->
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="input-group mb-3">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" id="storeSearchInput" class="form-control" placeholder="بحث في المحلات...">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">نوع السعر</label>
+                                        <select id="storePriceFilter" class="form-select form-select-sm">
+                                            <option value="all">جميع الأنواع</option>
+                                            <option value="retail">تجزئة</option>
+                                            <option value="wholesale">جملة</option>
+                                            <option value="distributor">موزعين</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">ترتيب حسب</label>
+                                        <select id="storeSortBy" class="form-select form-select-sm">
+                                            <option value="name">الاسم</option>
+                                            <option value="date">تاريخ الإضافة</option>
+                                            <option value="balance">الرصيد</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- قائمة المحلات -->
+                            <div class="stores-list-container" style="max-height: 600px; overflow-y: auto;">
+                                <div id="storesList" class="list-group">
+                                    <!-- سيتم ملؤه بالبيانات -->
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-8">
@@ -759,48 +887,39 @@
             <div id="reports" class="section" style="display:none;">
                 <div class="section-content">
                     <h4 class="section-title">التقارير المالية</h4>
-                    <div class="row g-2 align-items-end mb-3" id="reportsFilters">
-                        <div class="col-12 col-md-auto">
-                            <label class="form-label mb-1">القسم</label>
-                            <select id="reportsSectionFilter" class="form-select form-select-sm" style="min-width:160px;">
-                                <option value="all">الكل</option>
-                                <option value="payments" selected>التسديدات</option>
-                                <option value="expenses">المصروفات</option>
-                                <option value="sales">المبيعات</option>
-                                <option value="debts">الديون</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-auto">
-                            <label class="form-label mb-1">المحل</label>
-                            <select id="reportsStoreFilter" class="form-select form-select-sm" style="min-width:160px;">
-                                <option value="all">جميع المحلات</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-auto">
-                            <label class="form-label mb-1">المدة</label>
-                            <select id="reportsPeriod" class="form-select form-select-sm" style="min-width:160px;">
-                                <option value="from_start">من البداية</option>
-                                <option value="day">خلال يوم</option>
-                                <option value="week">خلال أسبوع</option>
-                                <option value="month">خلال شهر</option>
-                                <option value="this_month" selected>خلال هذا الشهر</option>
-                                <option value="prev_month">خلال الشهر السابق</option>
-                                <option value="custom">مدى مخصص</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-auto" id="reportsCustomRange" style="display:none;">
-                            <label class="form-label mb-1 d-block">نطاق التاريخ</label>
-                            <div class="d-flex gap-2">
-                                <input type="date" id="reportsFromDate" class="form-control form-control-sm" />
-                                <input type="date" id="reportsToDate" class="form-control form-control-sm" />
-                                <button class="btn btn-sm btn-primary" id="applyReportsCustomRange" type="button">تطبيق</button>
-                            </div>
-                        </div>
-                    </div>
+
                     
                     <div class="card mb-3" id="quickSummariesCard">
                         <div class="card-header bg-light">ملخصات مرئية</div>
                         <div class="card-body">
+                            <div class="row g-2 align-items-end mb-3">
+                                <div class="col-12 col-md-auto">
+                                    <label class="form-label mb-1">المدة</label>
+                                    <select id="summariesPeriod" class="form-select form-select-sm" style="min-width:160px;">
+                                        <option value="from_start">من البداية</option>
+                                        <option value="day">خلال يوم</option>
+                                        <option value="week">خلال أسبوع</option>
+                                        <option value="month">خلال شهر</option>
+                                        <option value="this_month" selected>خلال هذا الشهر</option>
+                                        <option value="prev_month">خلال الشهر السابق</option>
+                                        <option value="custom">مدى مخصص</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto" id="summariesCustomRange" style="display:none;">
+                                    <label class="form-label mb-1 d-block">نطاق التاريخ</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" id="summariesFromDate" class="form-control form-control-sm" />
+                                        <input type="date" id="summariesToDate" class="form-control form-control-sm" />
+                                        <button class="btn btn-sm btn-primary" id="applySummariesRange" type="button">تطبيق</button>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-auto ms-auto d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-success" id="exportSummariesExcel"><i class="fas fa-file-excel me-1"></i>Excel</button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="exportSummariesTxt"><i class="fas fa-file-alt me-1"></i>مستند</button>
+                                    <button class="btn btn-sm btn-outline-danger" id="exportSummariesPdf"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                                    <button class="btn btn-sm btn-outline-primary" id="openSummariesReport"><i class="fas fa-file-alt me-1"></i>فتح التقرير</button>
+                                </div>
+                            </div>
                             <div class="row g-3">
                                 <div class="col-12 col-md-4">
                                     <h6 class="mb-2 d-flex justify-content-between"><span>المبيعات</span><span class="currency" id="quickSalesTotal">0</span></h6>
@@ -823,6 +942,34 @@
                             تقرير الديون للمحلات <small class="text-white-50">(الفترة الحالية)</small>
                         </div>
                         <div class="card-body">
+                            <div class="row g-2 align-items-end mb-3">
+                                <div class="col-12 col-md-auto">
+                                    <label class="form-label mb-1">المدة</label>
+                                    <select id="debtsPeriod" class="form-select form-select-sm" style="min-width:160px;">
+                                        <option value="from_start">من البداية</option>
+                                        <option value="day">خلال يوم</option>
+                                        <option value="week">خلال أسبوع</option>
+                                        <option value="month">خلال شهر</option>
+                                        <option value="this_month" selected>خلال هذا الشهر</option>
+                                        <option value="prev_month">خلال الشهر السابق</option>
+                                        <option value="custom">مدى مخصص</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto" id="debtsCustomRange" style="display:none;">
+                                    <label class="form-label mb-1 d-block">نطاق التاريخ</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" id="debtsFromDate" class="form-control form-control-sm" />
+                                        <input type="date" id="debtsToDate" class="form-control form-control-sm" />
+                                        <button class="btn btn-sm btn-primary" id="applyDebtsRange" type="button">تطبيق</button>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-auto ms-auto d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-success" id="exportDebtsExcel"><i class="fas fa-file-excel me-1"></i>Excel</button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="exportDebtsTxt"><i class="fas fa-file-alt me-1"></i>مستند</button>
+                                    <button class="btn btn-sm btn-outline-danger" id="exportDebtsPdf"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                                    <button class="btn btn-sm btn-outline-primary" id="openDebtsReport"><i class="fas fa-file-alt me-1"></i>فتح التقرير</button>
+                                </div>
+                            </div>
                             <div class="d-flex justify-content-end mb-2"><span class="me-2">إجمالي الديون:</span><span id="debtsTotalSummary" class="currency">0</span></div>
                             <div class="table-responsive">
                                 <table class="data-table">
@@ -849,6 +996,34 @@
                             تقرير الأرباح والخسائر <small class="text-dark-50">(الفترة الحالية)</small>
                         </div>
                         <div class="card-body">
+                            <div class="row g-2 align-items-end mb-3">
+                                <div class="col-12 col-md-auto">
+                                    <label class="form-label mb-1">المدة</label>
+                                    <select id="profitPeriod" class="form-select form-select-sm" style="min-width:160px;">
+                                        <option value="from_start">من البداية</option>
+                                        <option value="day">خلال يوم</option>
+                                        <option value="week">خلال أسبوع</option>
+                                        <option value="month">خلال شهر</option>
+                                        <option value="this_month" selected>خلال هذا الشهر</option>
+                                        <option value="prev_month">خلال الشهر السابق</option>
+                                        <option value="custom">مدى مخصص</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-auto" id="profitCustomRange" style="display:none;">
+                                    <label class="form-label mb-1 d-block">نطاق التاريخ</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="date" id="profitFromDate" class="form-control form-control-sm" />
+                                        <input type="date" id="profitToDate" class="form-control form-control-sm" />
+                                        <button class="btn btn-sm btn-primary" id="applyProfitRange" type="button">تطبيق</button>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-auto ms-auto d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-success" id="exportProfitExcel"><i class="fas fa-file-excel me-1"></i>Excel</button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="exportProfitTxt"><i class="fas fa-file-alt me-1"></i>مستند</button>
+                                    <button class="btn btn-sm btn-outline-danger" id="exportProfitPdf"><i class="fas fa-file-pdf me-1"></i>PDF</button>
+                                    <button class="btn btn-sm btn-outline-primary" id="openProfitReport"><i class="fas fa-file-alt me-1"></i>فتح التقرير</button>
+                                </div>
+                            </div>
                             <div class="table-responsive">
                                 <table class="data-table">
                                     <thead>
@@ -949,23 +1124,7 @@
                         </div>
                     </div>
                     
-                    <div class="export-options mt-4">
-                        <button class="btn btn-outline-success export-btn" data-type="reports" data-format="excel">
-                            <i class="fas fa-file-excel me-2"></i>تصدير Excel
-                        </button>
-                        <button class="btn btn-outline-secondary export-btn" data-type="reports" data-format="txt">
-                            <i class="fas fa-file-alt me-2"></i>تصدير TXT
-                        </button>
-                        <button class="btn btn-outline-dark export-btn" data-type="reports" data-format="json">
-                            <i class="fas fa-file-code me-2"></i>تصدير JSON
-                        </button>
-                        <button class="btn btn-outline-danger export-btn" data-type="reports" data-format="pdf">
-                            <i class="fas fa-file-pdf me-2"></i>تصدير PDF
-                        </button>
-                        <button class="btn btn-outline-primary export-btn" data-type="reports" data-format="printpage">
-                            <i class="fas fa-file-alt me-2"></i>فتح صفحة التقرير
-                        </button>
-                    </div>
+
 
                     <!-- تم أرشفة التقارير التفصيلية -->
                     </div>
@@ -1203,6 +1362,16 @@
                             </select>
                         </div>
                         <div class="mb-3">
+                            <label class="form-label">رقم الهاتف</label>
+                            <div class="input-group">
+                                <input type="tel" id="storePhone" class="form-control" placeholder="مثال: 0771234567" dir="ltr">
+                                <button type="button" class="btn btn-outline-secondary" id="selectContactBtn" title="اختر من جهات الاتصال">
+                                    <i class="fas fa-address-book"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">يمكنك الكتابة مباشرة أو الاختيار من جهات الاتصال</small>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">تاريخ الإضافة</label>
                             <input type="date" id="storeDate" class="form-control">
                         </div>
@@ -1428,6 +1597,9 @@
             trash: []
         };
         
+        // جعل البيانات متاحة عالمياً
+        window.data = data;
+        
         // تحويل أي أرقام عربية/فارسية إلى إنجليزية
         function toEnglishDigits(input) {
             if (input === null || input === undefined) return '';
@@ -1598,12 +1770,15 @@
                             payments: Array.isArray(parsedData.payments) ? parsedData.payments : [],
                             trash: Array.isArray(parsedData.trash) ? parsedData.trash : []
                         };
+                        // تحديث البيانات العامة
+                        window.data = data;
                         showNotification('تم تحميل البيانات بنجاح', 'success');
                     } else {
                         throw new Error('تنسيق البيانات غير صحيح');
                     }
                 } else {
                     // إذا لم توجد بيانات محفوظة، استخدم البيانات الافتراضية
+                    window.data = data;
                     showNotification('لا توجد بيانات محفوظة، سيتم استخدام بيانات جديدة', 'info');
                 }
             } catch (error) {
@@ -1619,6 +1794,7 @@
                     payments: [],
                     trash: []
                 };
+                window.data = data;
             }
             
             // تحديث جميع الواجهات
@@ -1635,24 +1811,28 @@
         // حفظ البيانات إلى localStorage
         function saveData() {
             try {
+                // استخدام window.data مباشرة للتأكد من حفظ البيانات الصحيحة
+                const dataToSave = window.data || data;
+                
                 // التحقق من صحة البيانات قبل الحفظ
-                if (!data || typeof data !== 'object') {
+                if (!dataToSave || typeof dataToSave !== 'object') {
                     throw new Error('البيانات غير صحيحة');
                 }
                 
                 // التأكد من وجود جميع الخصائص المطلوبة
                 const validData = {
-                    packages: Array.isArray(data.packages) ? data.packages : [],
-                    inventory: Array.isArray(data.inventory) ? data.inventory : [],
-                    stores: Array.isArray(data.stores) ? data.stores : [],
-                    expenses: Array.isArray(data.expenses) ? data.expenses : [],
-                    sales: Array.isArray(data.sales) ? data.sales : [],
-                    payments: Array.isArray(data.payments) ? data.payments : [],
-                    trash: Array.isArray(data.trash) ? data.trash : []
+                    packages: Array.isArray(dataToSave.packages) ? dataToSave.packages : [],
+                    inventory: Array.isArray(dataToSave.inventory) ? dataToSave.inventory : [],
+                    stores: Array.isArray(dataToSave.stores) ? dataToSave.stores : [],
+                    expenses: Array.isArray(dataToSave.expenses) ? dataToSave.expenses : [],
+                    sales: Array.isArray(dataToSave.sales) ? dataToSave.sales : [],
+                    payments: Array.isArray(dataToSave.payments) ? dataToSave.payments : [],
+                    trash: Array.isArray(dataToSave.trash) ? dataToSave.trash : []
                 };
                 
                 // تحديث الكائن الأصلي بالبيانات الصحيحة
                 data = validData;
+                window.data = validData;
                 
                 // حفظ البيانات بالتشفير إذا كان متاحاً
                 let saved = false;
@@ -2398,6 +2578,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('saleModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // تحرير بيع
@@ -2531,6 +2712,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // تحرير تسديد
@@ -2652,6 +2834,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('packageModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // إضافة كمية جديدة
@@ -2750,6 +2933,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('inventoryModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // إضافة محل جديد
@@ -2833,6 +3017,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('storeModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
         // إضافة مصروف جديد
@@ -2939,6 +3124,7 @@
             
             const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal'));
             modal.hide();
+            setTimeout(cleanupModalBackdrops, 300);
         }
         
 
@@ -2956,7 +3142,13 @@
         
         // تحديث قائمة المحلات في التقارير
         function updateReportStores() {
-            const select = document.getElementById('reportStoreSelect');
+            // البحث عن العنصر الصحيح reportsStoreFilter بدلاً من reportStoreSelect
+            const select = document.getElementById('reportsStoreFilter');
+            if (!select) return;
+            
+            // حفظ القيمة الحالية
+            const currentValue = select.value;
+            
             // مسح الخيارات الحالية باستثناء "جميع المحلات"
             while (select.options.length > 1) {
                 select.remove(1);
@@ -2969,6 +3161,11 @@
                 option.textContent = store.name;
                 select.appendChild(option);
             });
+            
+            // استعادة القيمة المحددة إذا كانت لا تزال موجودة
+            if (currentValue && [...select.options].some(opt => opt.value === currentValue)) {
+                select.value = currentValue;
+            }
         }
         
         // توليد تقرير الديون
@@ -3389,118 +3586,29 @@
         }
 
 
-        // تصدير التقارير
-        function exportReportsData(format) {
-            const filename = `التقارير_${moment().format('YYYYMMDD')}`;
-            const reportData = {
-                debtReport: generateDebtReportData(),
-                profitReport: generateProfitReportData(),
-                partnerReport: generatePartnerReportData()
-            };
-            
-            if (format === 'json') {
-                const dataStr = JSON.stringify(reportData, null, 2);
-                const blob = new Blob([dataStr], {type: 'application/json'});
-                const url = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${filename}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                showNotification('تم تصدير التقارير إلى ملف JSON', 'success');
-            } else if (format === 'excel') {
-                const wb = XLSX.utils.book_new();
-                
-                // تقرير الديون
-                if (reportData.debtReport.length > 0) {
-                    const debtWs = XLSX.utils.json_to_sheet(reportData.debtReport);
-                    XLSX.utils.book_append_sheet(wb, debtWs, "تقرير الديون");
-                }
-                
-                // تقرير الأرباح
-                if (reportData.profitReport.length > 0) {
-                    const profitWs = XLSX.utils.json_to_sheet(reportData.profitReport);
-                    XLSX.utils.book_append_sheet(wb, profitWs, "تقرير الأرباح");
-                }
-                
-                // تقرير الشركاء
-                if (reportData.partnerReport.length > 0) {
-                    const partnerWs = XLSX.utils.json_to_sheet(reportData.partnerReport);
-                    XLSX.utils.book_append_sheet(wb, partnerWs, "تقرير الشركاء");
-                }
-                
-                XLSX.writeFile(wb, `${filename}.xlsx`);
-                showNotification('تم تصدير التقارير إلى ملف Excel', 'success');
-            } else if (format === 'txt') {
-                let txtContent = "تقارير النظام\n\n";
-                txtContent += `تاريخ التصدير: ${moment().format('YYYY-MM-DD')}\n\n`;
-                
-                // تقرير الديون
-                txtContent += "===== تقرير الديون =====\n\n";
-                if (reportData.debtReport.length > 0) {
-                    const headers = Object.keys(reportData.debtReport[0]).join('\t');
-                    txtContent += headers + '\n';
-                    reportData.debtReport.forEach(report => {
-                        txtContent += Object.values(report).join('\t') + '\n';
-                    });
-                } else {
-                    txtContent += "لا توجد بيانات\n";
-                }
-                
-                // تقرير الأرباح
-                txtContent += "\n===== تقرير الأرباح =====\n\n";
-                if (reportData.profitReport.length > 0) {
-                    const headers = Object.keys(reportData.profitReport[0]).join('\t');
-                    txtContent += headers + '\n';
-                    reportData.profitReport.forEach(report => {
-                        txtContent += Object.values(report).join('\t') + '\n';
-                    });
-                } else {
-                    txtContent += "لا توجد بيانات\n";
-                }
-                
-                // تقرير الشركاء
-                txtContent += "\n===== تقرير الشركاء =====\n\n";
-                if (reportData.partnerReport.length > 0) {
-                    const headers = Object.keys(reportData.partnerReport[0]).join('\t');
-                    txtContent += headers + '\n';
-                    reportData.partnerReport.forEach(report => {
-                        txtContent += Object.values(report).join('\t') + '\n';
-                    });
-                } else {
-                    txtContent += "لا توجد بيانات\n";
-                }
-                
-                const blob = new Blob([txtContent], {type: 'text/plain'});
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${filename}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                showNotification('تم تصدير التقارير إلى ملف TXT', 'success');
-            }
-        }
 
+        
+
+        
+
+
+        
         // توليد بيانات تقرير الديون
         function generateDebtReportData() {
+            if (!data || !data.stores || data.stores.length === 0) {
+                return [];
+            }
+            
             return data.stores.map(store => {
-                const storeSales = data.sales.filter(s => s.storeId === store.id);
-                const storePayments = data.payments.filter(p => p.storeId === store.id);
+                const storeSales = (data.sales || []).filter(s => s.storeId === store.id);
+                const storePayments = (data.payments || []).filter(p => p.storeId === store.id);
                 
-                const totalSales = storeSales.reduce((sum, sale) => sum + sale.total, 0);
-                const totalPayments = storePayments.reduce((sum, payment) => sum + payment.amount, 0);
+                const totalSales = storeSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+                const totalPayments = storePayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
                 const remaining = totalSales - totalPayments;
                 
                 return {
-                    'اسم المحل': store.name,
+                    'اسم المحل': store.name || 'غير محدد',
                     'إجمالي المبيعات': totalSales,
                     'المدفوع': totalPayments,
                     'المتبقي': remaining,
@@ -3511,9 +3619,17 @@
         
         // توليد بيانات تقرير الأرباح
         function generateProfitReportData() {
-            const totalSales = data.sales.reduce((sum, sale) => sum + sale.total, 0);
-            const totalPaymentsSum = data.payments.reduce((sum, payment) => sum + payment.amount, 0);
-            const totalExpenses = data.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+            if (!data) {
+                return [{
+                    'إجمالي المبيعات': 0,
+                    'إجمالي المصروفات': 0,
+                    'صافي الربح': 0
+                }];
+            }
+            
+            const totalSales = (data.sales || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
+            const totalPaymentsSum = (data.payments || []).reduce((sum, payment) => sum + (payment.amount || 0), 0);
+            const totalExpenses = (data.expenses || []).reduce((sum, expense) => sum + (expense.amount || 0), 0);
             const netProfit = totalPaymentsSum - totalExpenses;
             
             return [{
@@ -3598,20 +3714,38 @@
 
                     function toArraySafe(x){ return Array.isArray(x) ? x : []; }
                     function mergeUniqueById(existingArr, incomingArr){
-                        const map = new Map();
-                        // keep existing first
-                        toArraySafe(existingArr).forEach(item => { if (item && item.id) map.set(item.id, item); });
-                        // incoming overwrites by id
-                        toArraySafe(incomingArr).forEach(item => {
-                            if (item && item.id) { map.set(item.id, item); }
-                            else if (item) {
-                                // no id: dedupe by JSON string
-                                const key = 'noid:' + JSON.stringify(item);
-                                if (!map.has(key)) map.set(key, item);
+                        try {
+                            const map = new Map();
+                            // keep existing first
+                            const existing = toArraySafe(existingArr);
+                            const incoming = toArraySafe(incomingArr);
+                            
+                            // حد أقصى للعناصر لتجنب مشاكل الذاكرة
+                            const maxItems = 10000;
+                            if (existing.length + incoming.length > maxItems) {
+                                console.warn(`تحذير: عدد العناصر كبير جداً (${existing.length + incoming.length}). سيتم اقتطاع البيانات.`);
                             }
-                        });
-                        // filter out synthetic noid keys
-                        return Array.from(map.entries()).map(([k,v]) => v);
+                            
+                            existing.slice(0, maxItems/2).forEach(item => { 
+                                if (item && item.id) map.set(item.id, item); 
+                            });
+                            
+                            // incoming overwrites by id
+                            incoming.slice(0, maxItems/2).forEach(item => {
+                                if (item && item.id) { 
+                                    map.set(item.id, item); 
+                                } else if (item) {
+                                    // تجنب JSON.stringify للعناصر الكبيرة
+                                    const simpleKey = `noid:${item.date || ''}_${item.amount || item.total || ''}`;
+                                    if (!map.has(simpleKey)) map.set(simpleKey, item);
+                                }
+                            });
+                            
+                            return Array.from(map.values());
+                        } catch (e) {
+                            console.error('خطأ في دمج البيانات:', e);
+                            return toArraySafe(existingArr);
+                        }
                     }
                     
                     console.log('نوع البيانات المختار:', dataType);
@@ -3629,6 +3763,8 @@
                                 payments: toArraySafe(importedData.payments),
                                 trash: toArraySafe(importedData.trash)
                             };
+                            // تحديث المتغير العام
+                            window.data = data;
                             console.log('تم استبدال البيانات:', data);
                         } else {
                             // دمج فريد حسب المعرّف لكل نوع
@@ -3639,6 +3775,8 @@
                             data.sales = mergeUniqueById(data.sales, importedData.sales);
                             data.payments = mergeUniqueById(data.payments, importedData.payments);
                             data.trash = mergeUniqueById(data.trash, importedData.trash);
+                            // تحديث المتغير العام
+                            window.data = data;
                         }
                     } else {
                         // التعامل مع استيراد نوع واحد من البيانات
@@ -3665,27 +3803,53 @@
                         
                         if (replace) {
                             data[dataType] = incoming;
+                            // تحديث المتغير العام
+                            window.data = data;
                             console.log(`تم استبدال ${dataType}:`, incoming);
                         } else {
                             data[dataType] = mergeUniqueById(data[dataType], incoming);
+                            // تحديث المتغير العام
+                            window.data = data;
                             console.log(`تم دمج ${dataType}:`, data[dataType]);
                         }
                     }
                     
                     console.log('البيانات قبل الحفظ:', data);
+                    console.log('window.data قبل الحفظ:', window.data);
+                    
+                    // التأكد من أن البيانات محدثة قبل الحفظ
+                    if (window.data !== data) {
+                        console.warn('تحذير: window.data غير متزامن مع data');
+                        window.data = data;
+                    }
+                    
                     saveData();
+                    
+                    // التحقق من البيانات بعد الحفظ
+                    console.log('البيانات بعد الحفظ:', window.data);
+                    
                     showNotification('تم استيراد البيانات بنجاح (تمت إزالة التكرارات)', 'success');
                     
-                    // تحديث الواجهة
-                    updateDashboard();
-                    renderPackagesTable();
-                    renderInventoryTable();
-                    renderStoresList();
-                    renderExpensesTable();
-                    updateReportStores();
-                    updateProfitReport();
-                    generateDebtReport();
-                    generatePartnerReports();
+                    // تحديث الواجهة مع تأخير لتجنب التداخل
+                    setTimeout(() => {
+                        try {
+                            if (typeof updateDashboard === 'function') updateDashboard();
+                            if (typeof renderPackagesTable === 'function') renderPackagesTable();
+                            if (typeof renderInventoryTable === 'function') renderInventoryTable();
+                            if (typeof renderStoresList === 'function') renderStoresList();
+                            if (typeof renderExpensesTable === 'function') renderExpensesTable();
+                            if (typeof updateReportStores === 'function') updateReportStores();
+                            if (typeof updateProfitReport === 'function') updateProfitReport();
+                            if (typeof generateDebtReport === 'function') generateDebtReport();
+                            if (typeof generatePartnerReports === 'function') generatePartnerReports();
+                        } catch (updateError) {
+                            console.error('خطأ في تحديث الواجهة:', updateError);
+                            // إعادة تحميل الصفحة في حالة الخطأ
+                            if (confirm('حدث خطأ في تحديث الواجهة. هل تريد إعادة تحميل الصفحة؟')) {
+                                location.reload();
+                            }
+                        }
+                    }, 100);
                     
                 } catch (error) {
                     console.error('خطأ في استيراد البيانات:', error);
@@ -3726,9 +3890,292 @@
         }
         
         // تهيئة النظام عند التحميل
+        // دالة مساعدة لتنظيف backdrop المتبقية
+        function cleanupModalBackdrops() {
+            // إزالة جميع backdrops المتبقية
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(backdrop => backdrop.remove());
+            
+            // إزالة الأنماط المتبقية على body
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+        
+        // تصدير الدالة للنطاق العام
+        window.cleanupModalBackdrops = cleanupModalBackdrops;
+        
+        // دوال التواصل مع المحلات عبر الهاتف
+        
+        /**
+         * إجراء مكالمة هاتفية
+         */
+        function makePhoneCall(phoneNumber) {
+            window.location.href = `tel:${phoneNumber}`;
+        }
+        
+        /**
+         * إرسال رسالة نصية بالرصيد الحالي
+         */
+        function sendBalanceSMS(phoneNumber, balance, storeName) {
+            const status = balance >= 0 ? 'دائن' : 'مدين';
+            const message = encodeURIComponent(
+                `السلام عليكم،\n` +
+                `محل: ${storeName}\n` +
+                `الرصيد الحالي: ${formatNumber(Math.abs(balance))} ريال\n` +
+                `الحالة: ${status}\n` +
+                `تاريخ: ${new Date().toLocaleDateString('ar-YE')}`
+            );
+            window.location.href = `sms:${phoneNumber}?body=${message}`;
+        }
+        
+        /**
+         * مشاركة تقرير المحل عبر Web Share API
+         */
+        function shareReport(storeId) {
+            const store = data.stores.find(s => s.id === storeId);
+            if (!store) return;
+            
+            const sales = data.sales.filter(s => s.storeId === storeId);
+            const payments = data.payments.filter(p => p.storeId === storeId);
+            const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+            const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
+            const balance = totalSales - totalPayments;
+            
+            // إنشاء نص التقرير
+            const reportText = 
+                `تقرير محل: ${store.name}\n` +
+                `━━━━━━━━━━━━━\n` +
+                `إجمالي المبيعات: ${formatNumber(totalSales)} ريال\n` +
+                `إجمالي المدفوعات: ${formatNumber(totalPayments)} ريال\n` +
+                `الرصيد الحالي: ${formatNumber(Math.abs(balance))} ريال ${balance >= 0 ? 'دائن' : 'مدين'}\n\n` +
+                `تاريخ التقرير: ${new Date().toLocaleDateString('ar-YE')}\n\n` +
+                `تم إنشاء هذا التقرير بواسطة نظام إدارة المبيعات`;
+            
+            // إنشاء رابط للتقرير
+            const reportUrl = window.location.origin + window.location.pathname + `#store-report-${storeId}`;
+            
+            // التحقق من دعم Web Share API
+            if (navigator.share) {
+                navigator.share({
+                    title: `تقرير محل ${store.name}`,
+                    text: reportText,
+                    url: reportUrl
+                })
+                .then(() => {
+                    showNotification('تم مشاركة التقرير بنجاح', 'success');
+                })
+                .catch((error) => {
+                    // إذا ألغى المستخدم المشاركة
+                    if (error.name !== 'AbortError') {
+                        console.error('خطأ في المشاركة:', error);
+                        fallbackShare(reportText, reportUrl);
+                    }
+                });
+            } else {
+                // بديل للمتصفحات التي لا تدعم Web Share API
+                fallbackShare(reportText, reportUrl);
+            }
+        }
+        
+        /**
+         * بديل للمشاركة في حالة عدم دعم Web Share API
+         */
+        function fallbackShare(text, url) {
+            // إنشاء نافذة منبثقة مع خيارات المشاركة
+            const shareOptions = `
+                <div class="text-center">
+                    <h5 class="mb-3">مشاركة التقرير</h5>
+                    <div class="d-flex justify-content-center gap-3 mb-3">
+                        <button class="btn btn-primary" onclick="copyToClipboard('${escape(text)}', '${escape(url)}')">
+                            <i class="fas fa-copy"></i> نسخ التقرير
+                        </button>
+                        <button class="btn btn-info" onclick="downloadReport('${escape(text)}')">
+                            <i class="fas fa-download"></i> تحميل كملف
+                        </button>
+                    </div>
+                    <small class="text-muted">يمكنك نسخ التقرير ولصقه في أي تطبيق</small>
+                </div>
+            `;
+            
+            // عرض النافذة المنبثقة
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            ${shareOptions}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            
+            // إزالة النافذة عند الإغلاق
+            modal.addEventListener('hidden.bs.modal', () => {
+                modal.remove();
+            });
+        }
+        
+        /**
+         * نسخ التقرير إلى الحافظة
+         */
+        function copyToClipboard(text, url) {
+            const fullText = unescape(text) + '\n\nرابط التقرير:\n' + unescape(url);
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(fullText)
+                    .then(() => {
+                        showNotification('تم نسخ التقرير إلى الحافظة', 'success');
+                        // إغلاق النافذة المنبثقة
+                        const modal = bootstrap.Modal.getInstance(document.querySelector('.modal'));
+                        if (modal) modal.hide();
+                    })
+                    .catch(err => {
+                        console.error('خطأ في النسخ:', err);
+                        showNotification('فشل نسخ التقرير', 'error');
+                    });
+            } else {
+                // طريقة بديلة للنسخ
+                const textArea = document.createElement('textarea');
+                textArea.value = fullText;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    showNotification('تم نسخ التقرير إلى الحافظة', 'success');
+                    const modal = bootstrap.Modal.getInstance(document.querySelector('.modal'));
+                    if (modal) modal.hide();
+                } catch (err) {
+                    showNotification('فشل نسخ التقرير', 'error');
+                }
+                
+                document.body.removeChild(textArea);
+            }
+        }
+        
+        /**
+         * تحميل التقرير كملف نصي
+         */
+        function downloadReport(text) {
+            const decodedText = unescape(text);
+            const blob = new Blob([decodedText], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `تقرير_محل_${new Date().toISOString().slice(0, 10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            showNotification('تم تحميل التقرير', 'success');
+            const modal = bootstrap.Modal.getInstance(document.querySelector('.modal'));
+            if (modal) modal.hide();
+        }
+        
+        /**
+         * مشاركة تقرير المحل عبر واتساب
+         */
+        function shareViaWhatsApp(storeId) {
+            const store = data.stores.find(s => s.id === storeId);
+            if (!store || !store.phone) return;
+            
+            const sales = data.sales.filter(s => s.storeId === storeId);
+            const payments = data.payments.filter(p => p.storeId === storeId);
+            const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
+            const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
+            const balance = totalSales - totalPayments;
+            
+            // إنشاء رابط للتقرير
+            const reportUrl = window.location.origin + window.location.pathname + `#store-report-${storeId}`;
+            
+            const message = encodeURIComponent(
+                `*تقرير محل ${store.name}*\n` +
+                `━━━━━━━━━━━━━\n` +
+                `📊 *إجمالي المبيعات:* ${formatNumber(totalSales)} ريال\n` +
+                `💰 *إجمالي المدفوعات:* ${formatNumber(totalPayments)} ريال\n` +
+                `💳 *الرصيد الحالي:* ${formatNumber(Math.abs(balance))} ريال ${balance >= 0 ? '✅ دائن' : '❌ مدين'}\n\n` +
+                `📅 *تاريخ التقرير:* ${new Date().toLocaleDateString('ar-YE')}\n\n` +
+                `🔗 *رابط التقرير الكامل:*\n${reportUrl}\n\n` +
+                `_تم إنشاء هذا التقرير بواسطة نظام إدارة المبيعات_`
+            );
+            
+            // فتح واتساب مع الرسالة
+            const whatsappUrl = `https://wa.me/${store.phone.replace(/^0/, '967')}?text=${message}`;
+            window.open(whatsappUrl, '_blank');
+        }
+        
+        // تصدير دوال التواصل
+        window.makePhoneCall = makePhoneCall;
+        window.sendBalanceSMS = sendBalanceSMS;
+        window.shareReport = shareReport;
+        window.shareViaWhatsApp = shareViaWhatsApp;
+        window.copyToClipboard = copyToClipboard;
+        window.downloadReport = downloadReport;
+        
+        // تصدير دوال التحديث
+        window.updateDashboard = updateDashboard;
+        window.updateProfitReport = updateProfitReport;
+        window.generateDebtReport = generateDebtReport;
+        window.updateReportStores = updateReportStores;
+        
+        // دالة مساعدة لتحديث جميع الأقسام
+        let isUpdating = false;
+        function updateAllSections() {
+            // حماية ضد الاستدعاءات المتكررة
+            if (isUpdating) return;
+            isUpdating = true;
+            
+            try {
+                updateDashboard();
+                updateProfitReport();
+                generateDebtReport();
+                if (typeof generatePartnerReports === 'function') {
+                    generatePartnerReports();
+                }
+                if (typeof renderStoresList === 'function') {
+                    renderStoresList();
+                }
+                if (typeof renderPackagesTable === 'function') {
+                    renderPackagesTable();
+                }
+                if (typeof renderInventoryTable === 'function') {
+                    renderInventoryTable();
+                }
+                if (typeof renderExpensesTable === 'function') {
+                    renderExpensesTable();
+                }
+            } finally {
+                // إعادة تعيين العلامة بعد انتهاء التحديث
+                setTimeout(() => { isUpdating = false; }, 100);
+            }
+        }
+        window.updateAllSections = updateAllSections;
+        
         document.addEventListener('DOMContentLoaded', function() {
             // تحميل البيانات
             loadData();
+            
+            // تغيير الأقسام
+            const navLinks = document.querySelectorAll('.sidebar .nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetSection = this.getAttribute('data-section');
+                    if (typeof switchSection === 'function') {
+                        switchSection(targetSection, this.textContent.trim());
+                    } else {
+                        console.error('دالة switchSection غير موجودة');
+                    }
+                });
+            });
             
             // التأكد من توفر دوال التصدير بعد تحميل جميع الملفات
             setTimeout(() => {
@@ -3743,7 +4190,7 @@
                 console.log('فحص دوال التصدير:', {
                     exportStoreData: typeof window.exportStoreData,
                     exportExpensesData: typeof window.exportExpensesData,
-                    exportReportsData: typeof exportReportsData
+                    exportReportsData: 'undefined'
                 });
             }, 500);
             
@@ -3754,17 +4201,7 @@
             // تهيئة حقول الإدخال المنسقة
             setupFormattedInputs();
             
-            // تغيير الأقسام
-            const navLinks = document.querySelectorAll('.sidebar .nav-link');
-            const sections = document.querySelectorAll('.section');
-            
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetSection = this.getAttribute('data-section');
-                    switchSection(targetSection, this.textContent.trim());
-                });
-            });
+
             
             // إضافة معالجات الأحداث للأزرار
             document.getElementById('addPackageBtn').addEventListener('click', addPackage);
@@ -3808,13 +4245,7 @@
                         console.error('دالة exportExpensesData غير موجودة');
                         showNotification('خطأ: دالة التصدير غير متوفرة', 'error');
                     }
-                } else if (type === 'reports') {
-                    if (typeof exportReportsData === 'function') {
-                        exportReportsData(format);
-                    } else {
-                        console.error('دالة exportReportsData غير موجودة');
-                        showNotification('خطأ: دالة التصدير غير متوفرة', 'error');
-                    }
+
                 } else if (type === 'store') {
                     if (typeof exportStoreData === 'function') {
                         exportStoreData(storeId, format);
@@ -3944,6 +4375,25 @@
                     generatePartnerReports();
                 });
             }
+            
+            // تنظيف backdrop عند إغلاق أي modal
+            document.addEventListener('hidden.bs.modal', function (event) {
+                setTimeout(cleanupModalBackdrops, 100);
+            });
+            
+            // معالج إضافي للتأكد من التنظيف عند الضغط على backdrop
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal-backdrop')) {
+                    setTimeout(cleanupModalBackdrops, 300);
+                }
+            });
+            
+            // معالج للتأكد من التنظيف عند الضغط على ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    setTimeout(cleanupModalBackdrops, 300);
+                }
+            });
 
             // تهيئة اقتراحات أنواع المصروفات (chips)
             const defaultExpenseTypes = [

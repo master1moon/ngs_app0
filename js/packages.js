@@ -1,4 +1,12 @@
 // إدارة الباقات
+
+/**
+ * عرض جدول الباقات
+ * يستخدم العرض الافتراضي للجداول الكبيرة (أكثر من 50 عنصر)
+ * يستخدم الطريقة الآمنة لعرض البيانات إذا كانت متاحة
+ * يعرض اسم الباقة مع أنواع الأسعار الثلاثة (قطاعي، جملة، موزع)
+ * يضيف أزرار التحكم (تعديل، حذف) لكل باقة
+ */
 function renderPackagesTable() {
   const table = document.getElementById('packagesTable');
   if (!table) return; 
@@ -108,6 +116,11 @@ function renderPackagesTable() {
   });
 }
 
+/**
+ * فتح نموذج إضافة باقة جديدة
+ * يعيد تعيين جميع حقول النموذج إلى قيمها الافتراضية
+ * يضبط التاريخ على اليوم الحالي
+ */
 function addPackage() {
   document.getElementById('packageModalTitle').textContent = 'إضافة باقة جديدة';
   document.getElementById('packageId').value = '';
@@ -119,6 +132,12 @@ function addPackage() {
   const modal = new bootstrap.Modal(document.getElementById('packageModal')); modal.show();
 }
 
+/**
+ * فتح نموذج تعديل باقة موجودة
+ * يملأ النموذج بالبيانات الحالية للباقة
+ * ينسق الأسعار بالفواصل للعرض
+ * @param {string} id - معرف الباقة المراد تعديلها
+ */
 function editPackage(id) {
   const pkg = data.packages.find(p => p.id === id); if (!pkg) return;
   document.getElementById('packageModalTitle').textContent = 'تعديل الباقة';
@@ -131,6 +150,13 @@ function editPackage(id) {
   const modal = new bootstrap.Modal(document.getElementById('packageModal')); modal.show();
 }
 
+/**
+ * حذف باقة من النظام
+ * يطلب تأكيد من المستخدم قبل الحذف
+ * ينقل الباقة المحذوفة إلى سلة المحذوفات
+ * يحدث جدول الباقات ولوحة المعلومات
+ * @param {string} id - معرف الباقة المراد حذفها
+ */
 function deletePackage(id) {
   if (!confirm('هل أنت متأكد من حذف هذه الباقة؟')) return;
   const pkg = data.packages.find(p => p.id === id);
@@ -140,13 +166,20 @@ function deletePackage(id) {
   showNotification('تم حذف الباقة بنجاح', 'success');
 }
 
+/**
+ * حفظ بيانات الباقة (إضافة جديدة أو تحديث موجودة)
+ * يتحقق من صحة البيانات المدخلة (الاسم مطلوب)
+ * يحول الأسعار من النص المنسق إلى أرقام
+ * ينشئ معرف فريد للباقات الجديدة
+ * يحدث جدول الباقات ولوحة المعلومات
+ */
 function savePackage() {
   const id = document.getElementById('packageId').value;
   const name = document.getElementById('packageName').value;
   const retailPrice = parseFormattedNumber(document.getElementById('retailPrice').value) || null;
   const wholesalePrice = parseFormattedNumber(document.getElementById('wholesalePrice').value) || null;
   const distributorPrice = parseFormattedNumber(document.getElementById('distributorPrice').value) || null;
-  const date = document.getElementById('packageDate').value || today;
+  const date = document.getElementById('packageDate').value ? formatDateEn(document.getElementById('packageDate').value) : today;
   if (!name) { showNotification('يرجى إدخال اسم الباقة', 'error'); return; }
   if (id) {
     const pkg = data.packages.find(p => p.id === id);
@@ -164,3 +197,6 @@ function savePackage() {
   updateDashboard();
   const modal = bootstrap.Modal.getInstance(document.getElementById('packageModal')); modal.hide();
 }
+
+// تصدير الدوال للنطاق العام
+window.renderPackagesTable = renderPackagesTable;
