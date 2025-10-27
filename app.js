@@ -1,23 +1,65 @@
-// GitHub settings and data sync
+// إعدادات GitHub ومزامنة البيانات
+// يخزن إعدادات GitHub المطلوبة للمزامنة (التوكن، معرف Gist، اسم الملف، المزامنة التلقائية)
 let githubSettings = { token: '', gistId: '', fileName: 'network-cards.json', autoSync: false };
 
+/**
+ * تحميل إعدادات GitHub من التخزين المحلي
+ * يحاول أولاً تحميل الإعدادات المشفرة، ثم يعود للتحميل العادي إذا فشل
+ * يقوم بترحيل البيانات غير المشفرة إلى التشفير إذا كان متاحاً
+ */
 function loadGithubSettings() {
     try {
+        // محاولة تحميل الإعدادات المشفرة
+        if (window.DataEncryption && window.DataEncryption.loadEncrypted) {
+            const encrypted = window.DataEncryption.loadEncrypted('githubSettings');
+            if (encrypted) {
+                githubSettings = Object.assign(githubSettings, encrypted);
+                return;
+            }
+        }
+        
+        // التحميل العادي كـ fallback
         const saved = localStorage.getItem('githubSettings');
         if (saved) {
             const parsed = JSON.parse(saved);
             githubSettings = Object.assign(githubSettings, parsed);
+            
+            // ترحيل إلى التشفير
+            if (window.DataEncryption && window.DataEncryption.saveEncrypted && parsed.token) {
+                window.DataEncryption.saveEncrypted('githubSettings', parsed);
+            }
         }
     } catch (e) { /* ignore */ }
 }
 
+/**
+ * حفظ إعدادات GitHub في التخزين المحلي
+ * يحاول الحفظ بشكل مشفر أولاً، ثم يعود للحفظ العادي إذا فشل
+ * يعرض إشعاراً بنجاح أو فشل العملية
+ */
 function saveGithubSettings() {
+    // حفظ مشفر إذا كان متاحاً
+    if (window.DataEncryption && window.DataEncryption.saveEncrypted) {
+        const saved = window.DataEncryption.saveEncrypted('githubSettings', githubSettings);
+        if (saved) {
+            if (typeof showNotification === 'function') {
+                showNotification('تم حفظ إعدادات جيت هب بشكل آمن', 'success');
+            }
+            return;
+        }
+    }
+    
+    // الحفظ العادي كـ fallback
     localStorage.setItem('githubSettings', JSON.stringify(githubSettings));
     if (typeof showNotification === 'function') {
         showNotification('تم حفظ إعدادات جيت هب', 'success');
     }
 }
 
+/**
+ * ملء نموذج إعدادات GitHub بالقيم المحفوظة
+ * يتحقق من وجود جميع عناصر النموذج قبل تعبئتها
+ */
 function populateGithubModal() {
     const tokenEl = document.getElementById('githubToken');
     const gistIdEl = document.getElementById('githubGistId');
@@ -30,6 +72,12 @@ function populateGithubModal() {
     autoSyncEl.checked = !!githubSettings.autoSync;
 }
 
+/**
+ * إنشاء Gist جديد على GitHub
+ * يتطلب وجود التوكن، ويقوم بإنشاء Gist خاص يحتوي على بيانات التطبيق
+ * يحفظ معرف Gist الناتج في الإعدادات
+ * @returns {Promise<void>}
+ */
 async function githubCreateGist() {
     if (!githubSettings.token) {
         if (typeof showNotification === 'function') showNotification('يرجى إدخال التوكن أولاً', 'error');
@@ -58,6 +106,12 @@ async function githubCreateGist() {
     if (typeof showNotification === 'function') showNotification('تم إنشاء Gist جديد وحفظ المعرف', 'success');
 }
 
+/**
+ * رفع البيانات الحالية إلى Gist موجود على GitHub
+ * يتطلب وجود التوكن ومعرف Gist
+ * يستخدم PATCH لتحديث محتوى الملف في Gist
+ * @returns {Promise<void>}
+ */
 async function githubUploadData() {
     if (!githubSettings.token || !githubSettings.gistId) {
         if (typeof showNotification === 'function') showNotification('يجب إدخال التوكن و Gist ID أولاً', 'error');
@@ -80,6 +134,12 @@ async function githubUploadData() {
     if (typeof showNotification === 'function') showNotification('تم رفع البيانات إلى جيت هب بنجاح', 'success');
 }
 
+/**
+ * تحميل البيانات من Gist على GitHub
+ * يتطلب معرف Gist (التوكن اختياري للـ Gist العام)
+ * يقوم بتحليل البيانات وتحديث جميع الجداول والتقارير
+ * @returns {Promise<void>}
+ */
 async function githubDownloadData() {
     if (!githubSettings.gistId) {
         if (typeof showNotification === 'function') showNotification('يرجى إدخال Gist ID أولاً', 'error');
@@ -123,6 +183,10 @@ async function githubDownloadData() {
     }
 }
 
+/**
+ * معالج حدث تحميل الصفحة
+ * يقوم بتحميل إعدادات GitHub وإضافة مستمعي الأحداث للأزرار
+ */
 document.addEventListener('DOMContentLoaded', () => {
     loadGithubSettings();
     const modalEl = document.getElementById('githubSyncModal');
@@ -145,6 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (downloadBtn) downloadBtn.addEventListener('click', githubDownloadData);
 });
 
+/**
+ * تسجيل Service Worker للعمل بدون اتصال
+ * يتحقق من دعم المتصفح قبل التسجيل
+ * يسجل نجاح أو فشل التسجيل في وحدة التحكم
+ */
 // Service Worker registration
 (function(){
   if ('serviceWorker' in navigator) {

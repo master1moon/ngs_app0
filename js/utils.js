@@ -1,4 +1,11 @@
 // رقمية: تحويل الأرقام العربية/الفارسية إلى إنجليزية
+
+/**
+ * تحويل الأرقام العربية والفارسية إلى أرقام إنجليزية
+ * يتعامل مع الأرقام العربية (٠-٩) والفارسية (۰-۹)
+ * @param {*} input - المدخل الذي قد يحتوي على أرقام عربية/فارسية
+ * @returns {string} النص بأرقام إنجليزية
+ */
 function toEnglishDigits(input) {
   if (input === null || input === undefined) return '';
   return String(input)
@@ -6,36 +13,100 @@ function toEnglishDigits(input) {
     .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0));
 }
 
-// تنسيق الأرقام بفواصل إنجليزية دائمًا
+/**
+ * تنسيق الأرقام بفواصل إنجليزية
+ * يحول الأرقام إلى إنجليزية أولاً ثم يضيف الفواصل
+ * @param {*} num - الرقم المراد تنسيقه
+ * @returns {string} الرقم منسق بفواصل إنجليزية
+ */
 function formatNumber(num) {
   if (num === null || num === undefined) return '';
   const n = Number(toEnglishDigits(num)) || 0;
   return n.toLocaleString('en-US');
 }
 
-// تحليل الأرقام المنسقة مع دعم الأرقام العربية
+/**
+ * تحليل الأرقام المنسقة مع دعم الأرقام العربية
+ * يحول الأرقام إلى إنجليزية ويزيل الفواصل
+ * @param {string} str - النص المحتوي على رقم منسق
+ * @returns {number} الرقم العشري
+ */
 function parseFormattedNumber(str) {
   if (!str) return 0;
   const eng = toEnglishDigits(str);
   return parseFloat(eng.replace(/,/g, '')) || 0;
 }
 
-// تنسيق التاريخ إلى YYYY-MM-DD بأرقام إنجليزية دائمًا
+/**
+ * تنسيق التاريخ إلى صيغة YYYY-MM-DD بأرقام إنجليزية
+ * يحول الأرقام إلى إنجليزية ويستخدم moment.js إذا كان متاحاً
+ * يدعم عدة صيغ للتاريخ المدخل
+ * @param {string} dateStr - نص التاريخ
+ * @returns {string} التاريخ بصيغة YYYY-MM-DD
+ */
 function formatDateEn(dateStr) {
   if (!dateStr) return '';
-  const raw = toEnglishDigits(dateStr).slice(0, 10);
+  
+  // تحويل الأرقام العربية إلى إنجليزية
+  const englishDate = toEnglishDigits(dateStr);
+  
   try {
     if (typeof moment !== 'undefined') {
-      const m = moment(raw, [moment.ISO_8601, 'YYYY-MM-DD', 'YYYY-M-D', 'DD/MM/YYYY', 'D/M/YYYY'], true);
-      if (m.isValid()) return m.format('YYYY-MM-DD');
+      // جرب صيغ مختلفة للتاريخ
+      const formats = [
+        'YYYY-MM-DD',
+        'YYYY-M-D',
+        'DD/MM/YYYY',
+        'D/M/YYYY',
+        'DD-MM-YYYY',
+        'D-M-YYYY',
+        moment.ISO_8601
+      ];
+      
+      const m = moment(englishDate, formats, true);
+      if (m.isValid()) {
+        return m.format('YYYY-MM-DD');
+      }
     }
   } catch (_) {}
-  // fallback: simple cleanup
-  const m = /^\d{4}-\d{1,2}-\d{1,2}$/.test(raw) ? raw : raw.replace(/\D/g, '').replace(/(\d{4})(\d{2})(\d{2}).*/, '$1-$2-$3');
-  return m;
+  
+  // إذا فشل moment.js، حاول التحليل اليدوي
+  // التحقق من الصيغ المختلفة
+  const patterns = {
+    'YYYY-MM-DD': /^(\d{4})-(\d{1,2})-(\d{1,2})$/,
+    'DD/MM/YYYY': /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
+    'DD-MM-YYYY': /^(\d{1,2})-(\d{1,2})-(\d{4})$/
+  };
+  
+  for (const [format, pattern] of Object.entries(patterns)) {
+    const match = englishDate.match(pattern);
+    if (match) {
+      if (format === 'YYYY-MM-DD') {
+        return `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
+      } else {
+        // DD/MM/YYYY أو DD-MM-YYYY
+        return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+      }
+    }
+  }
+  
+  // إذا لم تتطابق أي صيغة، حاول تنظيف بسيط
+  const cleanDate = englishDate.replace(/\D/g, '');
+  if (cleanDate.length === 8) {
+    // افترض DDMMYYYY
+    return `${cleanDate.substr(4, 4)}-${cleanDate.substr(2, 2)}-${cleanDate.substr(0, 2)}`;
+  }
+  
+  return englishDate;
 }
 
-// تطبيق تنسيق الأرقام على جميع حقول الإدخال ذات الصنف formatted-input
+/**
+ * إعداد حقول الإدخال المنسقة
+ * يضيف مستمعي الأحداث لتنسيق الأرقام أثناء الكتابة
+ * يحول الأرقام العربية إلى إنجليزية ويضيف الفواصل
+ * يحافظ على موضع المؤشر أثناء التنسيق
+ * يدعم الأرقام السالبة والكسور العشرية
+ */
 function setupFormattedInputs() {
   document.querySelectorAll('.formatted-input').forEach(input => {
     input.addEventListener('focus', function () {
@@ -83,7 +154,13 @@ function setupFormattedInputs() {
   });
 }
 
-// إشعارات بسيطة في أسفل الصفحة
+/**
+ * عرض إشعار في أسفل الصفحة
+ * يعرض رسالة مؤقتة للمستخدم بنوع محدد
+ * يختفي الإشعار بعد 3 ثواني
+ * @param {string} message - نص الرسالة
+ * @param {string} type - نوع الإشعار (success, error, warning, info)
+ */
 function showNotification(message, type) {
   const notification = document.getElementById('notification');
   const notificationText = document.getElementById('notificationText');
@@ -93,7 +170,15 @@ function showNotification(message, type) {
   setTimeout(() => { notification.className = 'notification'; }, 3000);
 }
 
-// دالة موحدة للتنقل بين الأقسام وتفعيل الرابط النشط
+/**
+ * التنقل بين أقسام التطبيق
+ * يعرض القسم المطلوب ويخفي البقية
+ * يحدث الرابط النشط في الشريط الجانبي
+ * يحدث عنوان الصفحة
+ * يستدعي دوال تحديث خاصة لبعض الأقسام
+ * @param {string} targetSection - معرف القسم المراد عرضه
+ * @param {string} labelText - عنوان الصفحة (اختياري)
+ */
 function switchSection(targetSection, labelText) {
   const allLinks = document.querySelectorAll('.sidebar .nav-link, #mobileDrawer .nav-link');
   allLinks.forEach(l => l.classList.remove('active'));
@@ -104,9 +189,13 @@ function switchSection(targetSection, labelText) {
   const title = labelText || (document.querySelector(`.sidebar .nav-link[data-section="${targetSection}"]`)?.textContent.trim() || '');
   if (title) document.querySelector('.page-title').textContent = title;
   if (targetSection === 'reports') if (typeof generatePartnerReports === 'function') generatePartnerReports();
+  if (targetSection === 'trash') if (typeof renderTrashTable === 'function') setTimeout(() => renderTrashTable(), 100);
 }
 
-// ضمان إظهار القسم الافتراضي حتى لو فشل تهيئة أخرى
+/**
+ * ضمان عرض القسم الافتراضي عند تحميل الصفحة
+ * يعرض لوحة المعلومات بشكل افتراضي إذا لم يكن هناك قسم مرئي
+ */
 document.addEventListener('DOMContentLoaded', function () {
   const currentVisible = document.querySelector('.section:not([style*="display: none"])') || document.getElementById('dashboard');
   if (currentVisible && !currentVisible.classList.contains('show')) {
@@ -114,19 +203,27 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
-// إجبار حقول التاريخ على الإنجليزية وترتيب LTR
+/**
+ * إعداد حقول التاريخ للعمل باللغة الإنجليزية
+ * يضبط اللغة والاتجاه لجميع حقول التاريخ
+ * يضيف مستمعين لتنسيق التاريخ عند التغيير
+ */
 document.addEventListener('DOMContentLoaded', function(){
   document.querySelectorAll('input[type="date"]').forEach(inp => {
     inp.setAttribute('lang', 'en');
     inp.style.direction = 'ltr';
     inp.placeholder = 'YYYY-MM-DD';
-    // عند الإدخال/التغيير: طبيعـة التاريخ إلى أرقام إنجليزية وصيغة موحّدة
-    const normalize = () => { if (inp.value) inp.value = formatDateEn(inp.value); };
-    inp.addEventListener('change', normalize);
-    inp.addEventListener('blur', normalize);
+    // لا نحتاج لتطبيع التاريخ هنا لأن حقول date تتعامل مع صيغة YYYY-MM-DD تلقائياً
+    // إزالة مستمعي الأحداث التي قد تغير القيمة بشكل غير مرغوب
   });
 });
 
+/**
+ * نظام القائمة الجانبية للأجهزة المحمولة
+ * يدير فتح وإغلاق القائمة الجانبية
+ * يعمل مع اللمس والنقر
+ * يغلق بزر Escape أو عند تكبير الشاشة
+ */
 // درج الجوال المخصص (مؤجل حتى اكتمال DOM)
 document.addEventListener('DOMContentLoaded', function () {
   const toggleBtn = document.getElementById('mobileSidebarToggle');
@@ -169,3 +266,13 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function setTextSafe(el, text){ if (el) el.textContent = text; }
+
+// تصدير الدوال للنطاق العام
+if (typeof window !== 'undefined') {
+  window.toEnglishDigits = toEnglishDigits;
+  window.formatNumber = formatNumber;
+  window.parseFormattedNumber = parseFormattedNumber;
+  window.formatDateEn = formatDateEn;
+  window.showNotification = showNotification;
+  window.switchSection = switchSection;
+}

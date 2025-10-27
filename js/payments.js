@@ -1,4 +1,11 @@
 // إدارة التسديدات
+
+/**
+ * فتح نموذج إضافة تسديد جديد
+ * يعيد تعيين جميع حقول النموذج إلى قيمها الافتراضية
+ * يضبط التاريخ على اليوم الحالي
+ * @param {string} storeId - معرف المحل الذي سيتم إضافة التسديد له
+ */
 function addPayment(storeId) {
   document.getElementById('paymentModalTitle').textContent = 'إضافة تسديد';
   document.getElementById('paymentId').value = '';
@@ -9,12 +16,18 @@ function addPayment(storeId) {
   const modal = new bootstrap.Modal(document.getElementById('paymentModal')); modal.show();
 }
 
+/**
+ * حفظ بيانات التسديد (إضافة جديد أو تحديث موجود)
+ * يتحقق من صحة البيانات المدخلة (المبلغ يجب أن يكون موجباً)
+ * يحدث تفاصيل المحل وجميع التقارير ذات الصلة
+ * يعرض إشعار بنجاح العملية
+ */
 function savePayment() {
   const id = document.getElementById('paymentId').value;
   const storeId = document.getElementById('paymentStoreId').value;
   const amount = parseFormattedNumber(document.getElementById('paymentAmount').value);
   const notes = document.getElementById('paymentNotes').value;
-  const date = document.getElementById('paymentDate').value || today;
+  const date = document.getElementById('paymentDate').value ? formatDateEn(document.getElementById('paymentDate').value) : today;
   if (!storeId || isNaN(amount) || amount <= 0) { showNotification('يرجى ملء جميع الحقول المطلوبة', 'error'); return; }
   if (id) {
     const payment = data.payments.find(p => p.id === id);
@@ -30,9 +43,18 @@ function savePayment() {
   updateDashboard();
   updateProfitReport();
   generateDebtReport();
-  const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal')); modal.hide();
+  if (typeof generatePartnerReports === 'function') generatePartnerReports();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal')); 
+  modal.hide();
+  if (typeof cleanupModalBackdrops === 'function') setTimeout(cleanupModalBackdrops, 300);
 }
 
+/**
+ * فتح نموذج تعديل تسديد موجود
+ * يملأ النموذج بالبيانات الحالية للتسديد
+ * ينسق المبلغ بالفواصل للعرض
+ * @param {string} id - معرف التسديد المراد تعديله
+ */
 function editPayment(id) {
   const payment = data.payments.find(p => p.id === id); if (!payment) return;
   document.getElementById('paymentModalTitle').textContent = 'تعديل التسديد';
@@ -44,6 +66,13 @@ function editPayment(id) {
   const modal = new bootstrap.Modal(document.getElementById('paymentModal')); modal.show();
 }
 
+/**
+ * حذف تسديد من السجلات
+ * يطلب تأكيد من المستخدم قبل الحذف
+ * ينقل التسديد المحذوف إلى سلة المحذوفات
+ * يحدث تفاصيل المحل وجميع التقارير ذات الصلة
+ * @param {string} id - معرف التسديد المراد حذفه
+ */
 function deletePayment(id) {
   const payment = data.payments.find(p => p.id === id); if (!payment) return;
   if (!confirm('هل أنت متأكد من حذف هذا التسديد؟')) return;
@@ -51,4 +80,12 @@ function deletePayment(id) {
   saveData();
   (async()=>{ try{ if (typeof addToTrash==='function') await addToTrash('payments', payment); }catch{}; showStoreDetails(payment.storeId); updateDashboard(); updateProfitReport(); generateDebtReport(); })();
   showNotification('تم حذف التسديد بنجاح', 'success');
+}
+
+// تصدير الدوال للنطاق العام
+if (typeof window !== 'undefined') {
+  window.addPayment = addPayment;
+  window.savePayment = savePayment;
+  window.editPayment = editPayment;
+  window.deletePayment = deletePayment;
 }

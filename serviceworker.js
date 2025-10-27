@@ -7,6 +7,10 @@ const CRITICAL_ASSETS = [
   './manifest.json',
   './fonts/Amiri-Regular.woff2',
   './app.js',
+  './js/security.js',
+  './js/encryption.js',
+  './js/safeDOM.js',
+  './js/dataValidator.js',
   './js/utils.js',
   './js/reports.js',
   './js/inventory.js',
@@ -18,6 +22,7 @@ const CRITICAL_ASSETS = [
   './js/storage.js',
   './js/backup.js',
   './js/backupManager.js',
+  './js/trash.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'

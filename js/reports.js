@@ -28,7 +28,14 @@ function updateDashboardReports() {
 }
 
 // حافظ على التوافق إن وُجدت استدعاءات قديمة
-if (typeof window !== 'undefined') { window.updateDashboard = window.updateDashboard || updateDashboardReports; }
+if (typeof window !== 'undefined') { 
+  window.updateDashboard = window.updateDashboard || updateDashboardReports;
+  // تصدير الدوال للنطاق العام
+  window.exportStoreData = exportStoreData;
+  window.exportExpensesData = exportExpensesData;
+  window.getPriceTypeName = getPriceTypeName;
+  window.buildStoreReportHTML = buildStoreReportHTML;
+}
 
 function getPriceTypeName(priceType) {
   switch (priceType) {
@@ -39,17 +46,33 @@ function getPriceTypeName(priceType) {
   }
 }
 
+// دالة للتحقق من تطابق المحل مع الفلتر - معطلة الآن
+function isStoreMatch(item) {
+  return true; // إرجاع true دائماً بعد حذف الفلاتر
+}
+
+// تصدير الدالة للنطاق العام
+if (typeof window !== 'undefined') {
+  window.isStoreMatch = isStoreMatch;
+}
+
 function updateProfitReport() {
-  const { fromDate, toDate } = getPeriodRange();
-  const filteredSales = data.sales.filter(s => inPeriod(s.date, fromDate, toDate) && isStoreMatch(s));
+  // التأكد من وجود البيانات
+  if (!data || typeof data !== 'object') {
+    console.warn('البيانات غير متوفرة في updateProfitReport');
+    return;
+  }
+  
+  const { fromDate, toDate } = getPeriodRange('profit');
+  const filteredSales = (data.sales || []).filter(s => inPeriod(s.date, fromDate, toDate) && isStoreMatch(s));
   const totalSales = filteredSales.reduce((sum, sale) => sum + (sale.total || 0), 0);
   const totalSalesEl = document.getElementById('totalSalesReport');
   if (totalSalesEl) totalSalesEl.textContent = formatNumber(totalSales);
-  const filteredPayments = data.payments.filter(p => inPeriod(p.date, fromDate, toDate) && isStoreMatch(p));
+  const filteredPayments = (data.payments || []).filter(p => inPeriod(p.date, fromDate, toDate) && isStoreMatch(p));
   const totalPaymentsSum = filteredPayments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
   const totalPaymentsEl = document.getElementById('totalPaymentsReport');
   if (totalPaymentsEl) totalPaymentsEl.textContent = formatNumber(totalPaymentsSum);
-  const filteredExpenses = data.expenses.filter(e => inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
+  const filteredExpenses = (data.expenses || []).filter(e => inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
   const totalExpensesEl = document.getElementById('totalExpensesReport');
   if (totalExpensesEl) totalExpensesEl.textContent = formatNumber(totalExpenses);
@@ -63,8 +86,7 @@ function generatePartnerReports() {
   if (!container) return;
   container.innerHTML = '';
   const { fromDate, toDate, text } = getPartnersPeriodRange();
-  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
-  const byStore = x => (storeFilter==='all') ? true : String(x.storeId||'') === String(storeFilter);
+  const byStore = x => true; // لا توجد فلاتر بعد الآن
   const pays = data.payments.filter(p=> inPeriod(p.date, fromDate, toDate) && byStore(p));
   const exps = data.expenses.filter(e=> inPeriod(e.date, fromDate, toDate) && byStore(e));
   const totalPays = pays.reduce((s,x)=> s + (Number(x.amount)||0), 0);
@@ -72,8 +94,6 @@ function generatePartnerReports() {
   const net = totalPays - totalExps;
   const partners = getPartnersCount();
   const perPartner = net / partners;
-  const listPays = pays.map(p=> ({ التاريخ: formatDateEn(p.date), المحل: (data.stores.find(s=>s.id===p.storeId)?.name)||'', المبلغ: Number(p.amount)||0, ملاحظات: p.notes||'' }));
-  const listExps = exps.map(e=> ({ التاريخ: formatDateEn(e.date), النوع: e.type||'', المبلغ: Number(e.amount)||0, ملاحظات: e.notes||'' }));
   const html = `
     <div class="partner-report-card">
       <div class="partner-report-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -89,11 +109,71 @@ function generatePartnerReports() {
       <div class="row g-3">
         <div class="col-12 col-md-6">
           <h6>جميع التسديدات</h6>
-          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>التاريخ</th><th>المحل</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${listPays.map(r=>`<tr><td>${r.التاريخ}</td><td>${r.المحل}</td><td class="currency">${formatNumber(r.المبلغ)}</td><td>${r.ملاحظات}</td></tr>`).join('')}</tbody></table></div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>المحل</th>
+                  <th>المبلغ</th>
+                  <th>ملاحظات</th>
+                  <th width="100">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pays.map((p, idx) => `
+                  <tr data-payment-id="${p.id}">
+                    <td>${formatDateEn(p.date)}</td>
+                    <td>${(data.stores.find(s=>s.id===p.storeId)?.name)||''}</td>
+                    <td class="currency">${formatNumber(p.amount||0)}</td>
+                    <td>${p.notes||''}</td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-primary" onclick="editPaymentFromPartner('${p.id}')" title="تعديل">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" onclick="deletePaymentFromPartner('${p.id}')" title="حذف">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
         <div class="col-12 col-md-6">
           <h6>جميع المصروفات</h6>
-          <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${listExps.map(r=>`<tr><td>${r.التاريخ}</td><td>${r.النوع}</td><td class="currency">${formatNumber(r.المبلغ)}</td><td>${r.ملاحظات}</td></tr>`).join('')}</tbody></table></div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>النوع</th>
+                  <th>المبلغ</th>
+                  <th>ملاحظات</th>
+                  <th width="100">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${exps.map((e, idx) => `
+                  <tr data-expense-id="${e.id}">
+                    <td>${formatDateEn(e.date)}</td>
+                    <td>${e.type||''}</td>
+                    <td class="currency">${formatNumber(e.amount||0)}</td>
+                    <td>${e.notes||''}</td>
+                    <td>
+                      <button class="btn btn-sm btn-outline-primary" onclick="editExpenseFromPartner('${e.id}')" title="تعديل">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" onclick="deleteExpenseFromPartner('${e.id}')" title="حذف">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>`;
@@ -157,9 +237,15 @@ function buildPartnerReportHTML(periodText, partnersCount, paysList, expsList, t
 })();
 
 function exportPartnerReport() {
+  // التأكد من وجود البيانات
+  if (!data || typeof data !== 'object') {
+    console.warn('البيانات غير متوفرة في exportPartnerReport');
+    return;
+  }
+  
   const { fromDate, toDate } = getPeriodRange();
-  const sales = data.sales.filter(s=> inPeriod(s.date, fromDate, toDate) && isStoreMatch(s));
-  const expenses = data.expenses.filter(e=> inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
+  const sales = (data.sales || []).filter(s=> inPeriod(s.date, fromDate, toDate) && isStoreMatch(s));
+  const expenses = (data.expenses || []).filter(e=> inPeriod(e.date, fromDate, toDate) && isStoreMatch(e));
   const totalSales = sales.reduce((sum, sale) => sum + (sale.total || 0), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
   const netProfit = totalSales - totalExpenses;
@@ -173,23 +259,16 @@ function exportPartnerReport() {
 }
 
 function updateReportStores() {
-  const select = document.getElementById('reportStoreSelect');
-  if (!select) return;
-  while (select.options.length > 1) select.remove(1);
-  data.stores.forEach(store => {
-    const option = document.createElement('option');
-    option.value = store.id; option.textContent = store.name; select.appendChild(option);
-  });
+  // لا حاجة لهذه الدالة بعد حذف الفلاتر
+  return;
 }
 
 function generateDebtReport() {
   const table = document.getElementById('debtReportTable');
   if (!table) return;
   table.innerHTML = '';
-  const { fromDate, toDate } = getPeriodRange();
+  const { fromDate, toDate } = getPeriodRange('debts');
   let storesArr = data.stores.slice();
-  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
-  if (storeFilter !== 'all') storesArr = storesArr.filter(s=> String(s.id) === String(storeFilter));
   const totalDebts = storesArr.reduce((sum, store) => {
     const storeSales = data.sales.filter(s => s.storeId === store.id && inPeriod(s.date, fromDate, toDate));
     const storePayments = data.payments.filter(p => p.storeId === store.id && inPeriod(p.date, fromDate, toDate));
@@ -355,14 +434,20 @@ function buildExpensesReportHTML(expensesRows, periodText) {
 }
 
 async function exportStoreData(storeId, format) {
+  // التأكد من وجود البيانات
+  if (!data || typeof data !== 'object') {
+    console.warn('البيانات غير متوفرة في exportStoreData');
+    showNotification('البيانات غير متوفرة', 'error');
+    return;
+  }
   const store = data.stores.find(s => (s.id + '') === (storeId + ''));
   if (!store) { showNotification('تعذر تحديد المحل للتصدير', 'error'); return; }
   var fromInput = document.getElementById('storeFromDate');
   var toInput = document.getElementById('storeToDate');
   const fromDate = (fromInput && fromInput.value) || '';
   const toDate = (toInput && toInput.value) || '';
-  const salesAll = data.sales.filter(s => (s.storeId + '') === (storeId + ''));
-  const paymentsAll = data.payments.filter(p => (p.storeId + '') === (storeId + ''));
+  const salesAll = (data.sales || []).filter(s => (s.storeId + '') === (storeId + ''));
+  const paymentsAll = (data.payments || []).filter(p => (p.storeId + '') === (storeId + ''));
   function parseDate(d) {
     if (!d) return null; const m = moment(d, [moment.ISO_8601, 'YYYY-MM-DD', 'YYYY-M-D', 'DD/MM/YYYY', 'D/M/YYYY'], true); if (m.isValid()) return m; const n = new Date(d); return isNaN(n.getTime()) ? null : moment(n);
   }
@@ -378,17 +463,20 @@ async function exportStoreData(storeId, format) {
   const totalSales = storeSales.reduce((sum, s) => sum + (s.total || 0), 0);
   const totalPayments = storePayments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const remaining = totalSales - totalPayments;
-  const packageIdToName = new Map(data.packages.map(p => [p.id + '', p.name]));
-  const mappedSalesForExport = storeSales.map(s => ({
-    التاريخ: formatDateEn(s.date),
-    التفاصيل: s.reason || (s.packageId ? 'بيع باقة' : 'بيع مخصص'),
-    الباقة: s.packageId && s.packageId !== 'custom' ? (packageIdToName.get(s.packageId + '') || 'غير معروف') : 'مخصص',
-    الكمية_أو_المبلغ: s.packageId === 'custom' ? s.amount : s.quantity,
-    الإجمالي: s.total
-  }));
-  const mappedPaymentsForExport = storePayments.map(p => ({ التاريخ: formatDateEn(p.date), المبلغ: p.amount, ملاحظات: p.notes || '' }));
-  const filename = `تفاصيل_${store.name.replace(/\s+/g, '_')}_${moment().format('YYYYMMDD')}`;
-  const periodText = `${formatDateEn(fromDate) || 'من البداية'} إلى ${formatDateEn(toDate) || 'حتى الآن'}`;
+  const packageIdToName = new Map((data.packages || []).map(p => [p.id + '', p.name]));
+              // استخدام formatDateEn إذا كانت متاحة، وإلا استخدام التاريخ كما هو
+    const formatDate = (typeof formatDateEn === 'function') ? formatDateEn : (d => d || '');
+    
+    const mappedSalesForExport = storeSales.map(s => ({
+      التاريخ: formatDate(s.date),
+      التفاصيل: s.reason || (s.packageId ? 'بيع باقة' : 'بيع مخصص'),
+      الباقة: s.packageId && s.packageId !== 'custom' ? (packageIdToName.get(s.packageId + '') || 'غير معروف') : 'مخصص',
+      الكمية_أو_المبلغ: s.packageId === 'custom' ? s.amount : s.quantity,
+      الإجمالي: s.total
+    }));
+    const mappedPaymentsForExport = storePayments.map(p => ({ التاريخ: formatDate(p.date), المبلغ: p.amount, ملاحظات: p.notes || '' }));
+    const filename = `تفاصيل_${store.name.replace(/\s+/g, '_')}_${moment().format('YYYYMMDD')}`;
+    const periodText = `${formatDate(fromDate) || 'من البداية'} إلى ${formatDate(toDate) || 'حتى الآن'}`;
   if (format === 'json') {
     const arabic = { المحل: { اسم: store.name, نوع_السعر: getPriceTypeName(store.priceType) }, الفترة: periodText, الملخص: { إجمالي_المبيعات: totalSales, إجمالي_التسديدات: totalPayments, المتبقي: remaining }, المبيعات: mappedSalesForExport, التسديدات: mappedPaymentsForExport };
     const dataStr = JSON.stringify(arabic, null, 2);
@@ -544,8 +632,24 @@ function generatePartnerReportData() {
   ];
 }
 
-function getPeriodRange() {
-  const f = document.getElementById('reportFromDate'); const t = document.getElementById('reportToDate');
+function getPeriodRange(reportType) {
+  // إذا تم تمرير نوع التقرير، استخدم العناصر الخاصة به
+  if (reportType) {
+    const periodSelect = document.getElementById(`${reportType}Period`);
+    const period = periodSelect ? periodSelect.value : 'this_month';
+    
+    if (period === 'custom') {
+      const fromDate = document.getElementById(`${reportType}FromDate`)?.value || moment().startOf('month').format('YYYY-MM-DD');
+      const toDate = document.getElementById(`${reportType}ToDate`)?.value || moment().format('YYYY-MM-DD');
+      return { fromDate, toDate };
+    }
+    
+    return getPeriodRangeByValue(period);
+  }
+  
+  // السلوك الافتراضي القديم للتوافق مع الكود الموجود
+  const f = document.getElementById('reportFromDate'); 
+  const t = document.getElementById('reportToDate');
   const fromDate = formatDateEn((f && f.value) || moment().startOf('month').format('YYYY-MM-DD'));
   const toDate = formatDateEn((t && t.value) || moment().format('YYYY-MM-DD'));
   return { fromDate, toDate };
@@ -561,7 +665,13 @@ function renderQuickSummaries(){
   const paymentsCanvas = document.getElementById('chartPayments');
   const expensesCanvas = document.getElementById('chartExpenses');
   if (!salesCanvas || !paymentsCanvas || !expensesCanvas) return;
-  const { fromDate, toDate } = getPeriodRange();
+  
+  // التأكد من وجود البيانات
+  if (!data || typeof data !== 'object') {
+    console.warn('البيانات غير متوفرة في renderQuickSummaries');
+    return;
+  }
+  const { fromDate, toDate } = getPeriodRange('summaries');
   const end = moment(toDate);
   let start = moment(fromDate);
   // احمِ الأداء: في حال كانت الفترة طويلة جدًا، اعرض آخر 365 يومًا فقط
@@ -577,9 +687,9 @@ function renderQuickSummaries(){
     }
     return days.map(d=> map.get(d)||0);
   }
-  const sales = data.sales.filter(s=> inPeriod(s.date, days[0], days[days.length-1]) && isStoreMatch(s));
-  const payments = data.payments.filter(p=> inPeriod(p.date, days[0], days[days.length-1]) && isStoreMatch(p));
-  const expenses = data.expenses.filter(e=> inPeriod(e.date, days[0], days[days.length-1]) && isStoreMatch(e));
+  const sales = (data.sales || []).filter(s=> inPeriod(s.date, days[0], days[days.length-1]) && isStoreMatch(s));
+  const payments = (data.payments || []).filter(p=> inPeriod(p.date, days[0], days[days.length-1]) && isStoreMatch(p));
+  const expenses = (data.expenses || []).filter(e=> inPeriod(e.date, days[0], days[days.length-1]) && isStoreMatch(e));
   const salesSeries = aggregateDaily(sales, s=>s.date, s=>s.total||0);
   const paymentsSeries = aggregateDaily(payments, p=>p.date, p=>p.amount||0);
   const expensesSeries = aggregateDaily(expenses, e=>e.date, e=>e.amount||0);
@@ -615,7 +725,7 @@ window.addEventListener('resize', ()=>{ renderQuickSummaries(); });
 function renderComparisonReport(){
   const table = document.getElementById('comparisonReportTable'); if (!table) return;
   const sub = document.getElementById('comparisonReportSubtitle');
-  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
+
   const now = moment();
   const thisFrom = now.clone().startOf('month').format('YYYY-MM-DD');
   const thisTo = now.clone().endOf('month').format('YYYY-MM-DD');
@@ -669,8 +779,7 @@ function getPartnersCount(){ const el = document.getElementById('partnersCount')
 
 function exportPartners(format){
   const { fromDate, toDate, text } = getPartnersPeriodRange();
-  const storeFilter = (document.getElementById('reportsStoreFilter')?.value) || 'all';
-  const byStore = x => (storeFilter==='all') ? true : String(x.storeId||'') === String(storeFilter);
+  const byStore = x => true; // لا توجد فلاتر بعد الآن
   const pays = data.payments.filter(p=> inPeriod(p.date, fromDate, toDate) && byStore(p));
   const exps = data.expenses.filter(e=> inPeriod(e.date, fromDate, toDate) && byStore(e));
   const totalPays = pays.reduce((s,x)=> s + (Number(x.amount)||0), 0);
@@ -722,52 +831,26 @@ const renderedEntities = new Set();
 function renderReportsAccordingToSelection(){
   const sel = document.getElementById('reportsSectionFilter');
   const section = sel ? sel.value : 'payments';
-  const entities = ['payments','expenses','sales','debts'];
-  if (section !== 'all') {
-    renderDetailedReport(section);
-    renderedEntities.add(section);
-  } else {
-    // Ensure at least payments is rendered
-    if (!renderedEntities.has('payments')) { renderDetailedReport('payments'); renderedEntities.add('payments'); }
-    entities.forEach(ent => { if (renderedEntities.has(ent)) renderDetailedReport(ent); });
-  }
+  
+  // هذه الدالة كانت تستدعي renderDetailedReport التي لم تعد موجودة
+  // حالياً لا تفعل شيئاً لأن التقارير التفصيلية غير متوفرة
+  console.log('تم اختيار القسم:', section);
 }
 
 function setupReportsLazyObserver(){
-  const map = new Map([
-    ['paymentsReportCard','payments'],
-    ['expensesReportCard','expenses'],
-    ['salesReportCard','sales'],
-    ['debtsReportCardDetails','debts']
-  ]);
-  if (!('IntersectionObserver' in window)) return;
-  const observer = new IntersectionObserver((entries)=>{
-    entries.forEach(entry=>{
-      if (entry.isIntersecting) {
-        const id = entry.target.id; const ent = map.get(id);
-        if (ent && !renderedEntities.has(ent)) { renderDetailedReport(ent); renderedEntities.add(ent); }
-      }
-    });
-  }, { root: null, rootMargin: '0px', threshold: 0.1 });
-  map.forEach((_, cardId)=>{ const el = document.getElementById(cardId); if (el) observer.observe(el); });
+  // هذه الدالة كانت تستخدم IntersectionObserver لتحميل التقارير عند الحاجة
+  // حالياً معطلة لأن renderDetailedReport غير موجودة
+  return;
 }
 
 function __populateReportsStores(){
-	const storeSel = document.getElementById('reportsStoreFilter');
-	if (!storeSel) return;
-	try {
-		const d = (typeof getDataRef === 'function' ? getDataRef() : (window.data || {})) || {};
-		const stores = Array.isArray(d.stores) ? d.stores : [];
-		const current = storeSel.value || 'all';
-		storeSel.innerHTML = '<option value="all">جميع المحلات</option>' + stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-		if ([...storeSel.options].some(o=>o.value===current)) storeSel.value = current; else storeSel.value = 'all';
-	} catch(_) {}
+	// لا حاجة لهذه الدالة بعد حذف الفلاتر
+	return;
 }
 
 function __syncReportsCustomVisibility(){
-	const periodSel = document.getElementById('reportsPeriod');
-	const wrap = document.getElementById('reportsCustomRange');
-	if (wrap && periodSel) wrap.style.display = periodSel.value === 'custom' ? '' : 'none';
+	// لا حاجة لهذه الدالة بعد حذف الفلاتر
+	return;
 }
 
 function __reRenderReports(){
@@ -781,20 +864,520 @@ function __reRenderReports(){
 }
 
 function initReportsControls(){
-	__populateReportsStores();
-	__syncReportsCustomVisibility();
-	const periodSel = document.getElementById('reportsPeriod');
-	const applyBtn = document.getElementById('applyReportsCustomRange');
-	const storeSel = document.getElementById('reportsStoreFilter');
-	const sectionSel = document.getElementById('reportsSectionFilter');
-	if (periodSel && !periodSel.dataset._wired){ periodSel.addEventListener('change', ()=>{ __syncReportsCustomVisibility(); if (periodSel.value !== 'custom') __reRenderReports(); }); periodSel.dataset._wired='1'; }
-	if (applyBtn && !applyBtn.dataset._wired){ applyBtn.addEventListener('click', ()=>{ __reRenderReports(); }); applyBtn.dataset._wired='1'; }
-	if (storeSel && !storeSel.dataset._wired){ storeSel.addEventListener('change', ()=>{ __reRenderReports(); }); storeSel.dataset._wired='1'; }
-	if (sectionSel && !sectionSel.dataset._wired){ sectionSel.addEventListener('change', ()=>{ /* فقط لإظهار/إخفاء البطاقات إن لزم مستقبلًا */ __reRenderReports(); }); sectionSel.dataset._wired='1'; }
+	// لا حاجة لمعالجات الأحداث بعد حذف الفلاتر
 	__reRenderReports();
 }
 
+// دوال تصدير التقارير الإضافية
+function exportSummaries(format) {
+  const { fromDate, toDate } = getPeriodRange('summaries');
+  const salesData = data.sales.filter(s => inPeriod(s.date, fromDate, toDate));
+  const paymentsData = data.payments.filter(p => inPeriod(p.date, fromDate, toDate));
+  const expensesData = data.expenses.filter(e => inPeriod(e.date, fromDate, toDate));
+  
+  const totalSales = salesData.reduce((sum, s) => sum + (s.total || 0), 0);
+  const totalPayments = paymentsData.reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalExpenses = expensesData.reduce((sum, e) => sum + (e.amount || 0), 0);
+  
+  if (format === 'excel') {
+    const wb = XLSX.utils.book_new();
+    const summaryData = [{
+      'التقرير': 'ملخصات مرئية',
+      'المدة': `${fromDate} إلى ${toDate}`,
+      'إجمالي المبيعات': totalSales,
+      'إجمالي التسديدات': totalPayments,
+      'إجمالي المصروفات': totalExpenses
+    }];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), 'الملخص');
+    XLSX.writeFile(wb, `ملخصات_${moment().format('YYYY-MM-DD')}.xlsx`);
+    showNotification('تم تصدير الملخصات إلى Excel', 'success');
+  } else if (format === 'txt') {
+    let content = `ملخصات مرئية - المدة: ${fromDate} إلى ${toDate}\n\n`;
+    content += `إجمالي المبيعات: ${formatNumber(totalSales)} ريال\n`;
+    content += `إجمالي التسديدات: ${formatNumber(totalPayments)} ريال\n`;
+    content += `إجمالي المصروفات: ${formatNumber(totalExpenses)} ريال\n`;
+    downloadTextFile(content, `ملخصات_${moment().format('YYYY-MM-DD')}.txt`);
+    showNotification('تم تصدير الملخصات إلى ملف نصي', 'success');
+  } else if (format === 'pdf' || format === 'print') {
+    openSummariesPrintPage(fromDate, toDate, totalSales, totalPayments, totalExpenses);
+  }
+}
+
+function exportDebts(format) {
+  const { fromDate, toDate } = getPeriodRange('debts');
+  const debtData = generateDebtReportDataForExport();
+  
+  if (format === 'excel') {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(debtData), 'الديون');
+    XLSX.writeFile(wb, `تقرير_الديون_${moment().format('YYYY-MM-DD')}.xlsx`);
+    showNotification('تم تصدير تقرير الديون إلى Excel', 'success');
+  } else if (format === 'txt') {
+    let content = `تقرير الديون - المدة: ${fromDate} إلى ${toDate}\n\n`;
+    debtData.forEach(debt => {
+      content += `${debt['اسم المحل']}: ${formatNumber(debt['المتبقي'])} ريال\n`;
+    });
+    downloadTextFile(content, `تقرير_الديون_${moment().format('YYYY-MM-DD')}.txt`);
+    showNotification('تم تصدير تقرير الديون إلى ملف نصي', 'success');
+  } else if (format === 'pdf' || format === 'print') {
+    openDebtsPrintPage(fromDate, toDate, debtData);
+  }
+}
+
+function exportProfit(format) {
+  const { fromDate, toDate } = getPeriodRange('profit');
+  const profitData = generateProfitReportDataForExport();
+  
+  if (format === 'excel') {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(profitData), 'الأرباح');
+    XLSX.writeFile(wb, `تقرير_الأرباح_${moment().format('YYYY-MM-DD')}.xlsx`);
+    showNotification('تم تصدير تقرير الأرباح إلى Excel', 'success');
+  } else if (format === 'txt') {
+    let content = `تقرير الأرباح والخسائر - المدة: ${fromDate} إلى ${toDate}\n\n`;
+    profitData.forEach(item => {
+      content += `${item['الوصف']}: ${formatNumber(item['المبلغ'])} ريال\n`;
+    });
+    downloadTextFile(content, `تقرير_الأرباح_${moment().format('YYYY-MM-DD')}.txt`);
+    showNotification('تم تصدير تقرير الأرباح إلى ملف نصي', 'success');
+  } else if (format === 'pdf' || format === 'print') {
+    openProfitPrintPage(fromDate, toDate, profitData);
+  }
+}
+
+
+
+// دالة مساعدة لتحويل قيمة الفترة إلى نطاق تاريخ
+function getPeriodRangeByValue(period) {
+  const now = moment();
+  let fromDate, toDate;
+  
+  switch(period) {
+    case 'from_start':
+      fromDate = '2020-01-01';
+      toDate = now.format('YYYY-MM-DD');
+      break;
+    case 'day':
+      fromDate = toDate = now.format('YYYY-MM-DD');
+      break;
+    case 'week':
+      fromDate = now.clone().subtract(7, 'days').format('YYYY-MM-DD');
+      toDate = now.format('YYYY-MM-DD');
+      break;
+    case 'month':
+      fromDate = now.clone().subtract(1, 'month').format('YYYY-MM-DD');
+      toDate = now.format('YYYY-MM-DD');
+      break;
+    case 'prev_month':
+      fromDate = now.clone().subtract(1, 'month').startOf('month').format('YYYY-MM-DD');
+      toDate = now.clone().subtract(1, 'month').endOf('month').format('YYYY-MM-DD');
+      break;
+    case 'this_month':
+    default:
+      fromDate = now.clone().startOf('month').format('YYYY-MM-DD');
+      toDate = now.format('YYYY-MM-DD');
+      break;
+  }
+  
+  return { fromDate, toDate };
+}
+
+// دالة مساعدة لتنزيل ملف نصي
+function downloadTextFile(content, filename) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// دوال فتح صفحات الطباعة
+function openSummariesPrintPage(fromDate, toDate, totalSales, totalPayments, totalExpenses) {
+  const html = buildPrintPageHTML('ملخصات مرئية', `${fromDate} إلى ${toDate}`, {
+    totalSales,
+    totalPayments,
+    totalExpenses
+  }, 'summaries');
+  openPrintWindow(html);
+}
+
+function openDebtsPrintPage(fromDate, toDate, debtData) {
+  const html = buildPrintPageHTML('تقرير الديون', `${fromDate} إلى ${toDate}`, debtData, 'debts');
+  openPrintWindow(html);
+}
+
+function openProfitPrintPage(fromDate, toDate, profitData) {
+  const html = buildPrintPageHTML('تقرير الأرباح والخسائر', `${fromDate} إلى ${toDate}`, profitData, 'profit');
+  openPrintWindow(html);
+}
+
+// دالة مساعدة لبناء صفحة الطباعة
+function buildPrintPageHTML(title, period, data, type) {
+  let html = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <title>${title}</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .content { margin: 20px 0; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+        th { background-color: #f5f5f5; }
+        .currency { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>${title}</h1>
+        <p>المدة: ${period}</p>
+        <p>التاريخ: ${new Date().toISOString().slice(0, 10)}</p>
+    </div>
+    <div class="content">`;
+    
+  if (type === 'summaries') {
+    html += `
+        <table>
+            <tr><td>إجمالي المبيعات</td><td class="currency">${formatNumber(data.totalSales)} ريال</td></tr>
+            <tr><td>إجمالي التسديدات</td><td class="currency">${formatNumber(data.totalPayments)} ريال</td></tr>
+            <tr><td>إجمالي المصروفات</td><td class="currency">${formatNumber(data.totalExpenses)} ريال</td></tr>
+        </table>`;
+  } else if (type === 'debts') {
+    html += `
+        <table>
+            <thead>
+                <tr>
+                    <th>اسم المحل</th>
+                    <th>إجمالي المبيعات</th>
+                    <th>المدفوع</th>
+                    <th>المتبقي</th>
+                </tr>
+            </thead>
+            <tbody>`;
+    data.forEach(row => {
+      html += `
+                <tr>
+                    <td>${row['اسم المحل']}</td>
+                    <td class="currency">${formatNumber(row['إجمالي المبيعات'])} ريال</td>
+                    <td class="currency">${formatNumber(row['المدفوع'])} ريال</td>
+                    <td class="currency">${formatNumber(row['المتبقي'])} ريال</td>
+                </tr>`;
+    });
+    html += `
+            </tbody>
+        </table>`;
+  } else if (type === 'profit') {
+    html += `
+        <table>
+            <thead>
+                <tr>
+                    <th>الوصف</th>
+                    <th>المبلغ</th>
+                </tr>
+            </thead>
+            <tbody>`;
+    data.forEach(row => {
+      html += `
+                <tr>
+                    <td>${row['الوصف']}</td>
+                    <td class="currency">${formatNumber(row['المبلغ'])} ريال</td>
+                </tr>`;
+    });
+    html += `
+            </tbody>
+        </table>`;
+  }
+  
+  html += `
+    </div>
+</body>
+</html>`;
+  
+  return html;
+}
+
+// دالة مساعدة لفتح نافذة الطباعة
+function openPrintWindow(html) {
+  try {
+    const win = window.open('', '_blank');
+    if (!win || !win.document) {
+      showNotification('يمنع المتصفح النوافذ المنبثقة. الرجاء السماح بها.', 'error');
+      return;
+    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    showNotification('تم فتح صفحة الطباعة', 'success');
+  } catch (e) {
+    showNotification('حدث خطأ أثناء فتح صفحة الطباعة', 'error');
+  }
+}
+
+// دوال توليد البيانات للتصدير
+function generateDebtReportDataForExport() {
+  const table = document.getElementById('debtReportTable');
+  const data = [];
+  if (table) {
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length >= 4) {
+        data.push({
+          'اسم المحل': cells[0].textContent.trim(),
+          'إجمالي المبيعات': parseFormattedNumber(cells[1].textContent),
+          'المدفوع': parseFormattedNumber(cells[2].textContent),
+          'المتبقي': parseFormattedNumber(cells[3].textContent)
+        });
+      }
+    });
+  }
+  return data;
+}
+
+function generateProfitReportDataForExport() {
+  const totalSales = parseFormattedNumber(document.getElementById('totalSalesReport')?.textContent || '0');
+  const totalPayments = parseFormattedNumber(document.getElementById('totalPaymentsReport')?.textContent || '0');
+  const totalExpenses = parseFormattedNumber(document.getElementById('totalExpensesReport')?.textContent || '0');
+  const netProfit = parseFormattedNumber(document.getElementById('netProfitReport')?.textContent || '0');
+  
+  return [
+    { 'الوصف': 'إجمالي المبيعات', 'المبلغ': totalSales },
+    { 'الوصف': 'إجمالي التسديدات', 'المبلغ': totalPayments },
+    { 'الوصف': 'إجمالي المصروفات', 'المبلغ': totalExpenses },
+    { 'الوصف': 'صافي الربح/الخسارة', 'المبلغ': netProfit }
+  ];
+}
+
+// ربط معالجات الأحداث للتقارير الإضافية
+function wireAdditionalReportsExports() {
+  // ملخصات مرئية
+  const summariesExcel = document.getElementById('exportSummariesExcel');
+  const summariesTxt = document.getElementById('exportSummariesTxt');
+  const summariesPdf = document.getElementById('exportSummariesPdf');
+  const summariesPrint = document.getElementById('openSummariesReport');
+  
+  if (summariesExcel && !summariesExcel.dataset._wired) {
+    summariesExcel.addEventListener('click', () => exportSummaries('excel'));
+    summariesExcel.dataset._wired = '1';
+  }
+  if (summariesTxt && !summariesTxt.dataset._wired) {
+    summariesTxt.addEventListener('click', () => exportSummaries('txt'));
+    summariesTxt.dataset._wired = '1';
+  }
+  if (summariesPdf && !summariesPdf.dataset._wired) {
+    summariesPdf.addEventListener('click', () => exportSummaries('pdf'));
+    summariesPdf.dataset._wired = '1';
+  }
+  if (summariesPrint && !summariesPrint.dataset._wired) {
+    summariesPrint.addEventListener('click', () => exportSummaries('print'));
+    summariesPrint.dataset._wired = '1';
+  }
+  
+  // تقرير الديون
+  const debtsExcel = document.getElementById('exportDebtsExcel');
+  const debtsTxt = document.getElementById('exportDebtsTxt');
+  const debtsPdf = document.getElementById('exportDebtsPdf');
+  const debtsPrint = document.getElementById('openDebtsReport');
+  
+  if (debtsExcel && !debtsExcel.dataset._wired) {
+    debtsExcel.addEventListener('click', () => exportDebts('excel'));
+    debtsExcel.dataset._wired = '1';
+  }
+  if (debtsTxt && !debtsTxt.dataset._wired) {
+    debtsTxt.addEventListener('click', () => exportDebts('txt'));
+    debtsTxt.dataset._wired = '1';
+  }
+  if (debtsPdf && !debtsPdf.dataset._wired) {
+    debtsPdf.addEventListener('click', () => exportDebts('pdf'));
+    debtsPdf.dataset._wired = '1';
+  }
+  if (debtsPrint && !debtsPrint.dataset._wired) {
+    debtsPrint.addEventListener('click', () => exportDebts('print'));
+    debtsPrint.dataset._wired = '1';
+  }
+  
+  // تقرير الأرباح
+  const profitExcel = document.getElementById('exportProfitExcel');
+  const profitTxt = document.getElementById('exportProfitTxt');
+  const profitPdf = document.getElementById('exportProfitPdf');
+  const profitPrint = document.getElementById('openProfitReport');
+  
+  if (profitExcel && !profitExcel.dataset._wired) {
+    profitExcel.addEventListener('click', () => exportProfit('excel'));
+    profitExcel.dataset._wired = '1';
+  }
+  if (profitTxt && !profitTxt.dataset._wired) {
+    profitTxt.addEventListener('click', () => exportProfit('txt'));
+    profitTxt.dataset._wired = '1';
+  }
+  if (profitPdf && !profitPdf.dataset._wired) {
+    profitPdf.addEventListener('click', () => exportProfit('pdf'));
+    profitPdf.dataset._wired = '1';
+  }
+  if (profitPrint && !profitPrint.dataset._wired) {
+    profitPrint.addEventListener('click', () => exportProfit('print'));
+    profitPrint.dataset._wired = '1';
+  }
+  
+  // معالجات تغيير الفترة
+  const summariesPeriod = document.getElementById('summariesPeriod');
+  const debtsPeriod = document.getElementById('debtsPeriod');
+  const profitPeriod = document.getElementById('profitPeriod');
+  
+  if (summariesPeriod && !summariesPeriod.dataset._wired) {
+    summariesPeriod.addEventListener('change', () => {
+      syncCustomRange('summaries');
+      if (summariesPeriod.value !== 'custom') {
+        renderQuickSummaries();
+      }
+    });
+    summariesPeriod.dataset._wired = '1';
+  }
+  
+  if (debtsPeriod && !debtsPeriod.dataset._wired) {
+    debtsPeriod.addEventListener('change', () => {
+      syncCustomRange('debts');
+      if (debtsPeriod.value !== 'custom') {
+        generateDebtReport();
+      }
+    });
+    debtsPeriod.dataset._wired = '1';
+  }
+  
+  if (profitPeriod && !profitPeriod.dataset._wired) {
+    profitPeriod.addEventListener('change', () => {
+      syncCustomRange('profit');
+      if (profitPeriod.value !== 'custom') {
+        updateProfitReport();
+      }
+    });
+    profitPeriod.dataset._wired = '1';
+  }
+  
+  // معالجات أزرار تطبيق النطاق المخصص
+  const summariesApply = document.getElementById('applySummariesRange');
+  const debtsApply = document.getElementById('applyDebtsRange');
+  const profitApply = document.getElementById('applyProfitRange');
+  
+  if (summariesApply && !summariesApply.dataset._wired) {
+    summariesApply.addEventListener('click', () => renderQuickSummaries());
+    summariesApply.dataset._wired = '1';
+  }
+  
+  if (debtsApply && !debtsApply.dataset._wired) {
+    debtsApply.addEventListener('click', () => generateDebtReport());
+    debtsApply.dataset._wired = '1';
+  }
+  
+  if (profitApply && !profitApply.dataset._wired) {
+    profitApply.addEventListener('click', () => updateProfitReport());
+    profitApply.dataset._wired = '1';
+  }
+}
+
+// دالة مساعدة لمزامنة ظهور النطاق المخصص
+function syncCustomRange(reportType) {
+  const periodSelect = document.getElementById(`${reportType}Period`);
+  const customRange = document.getElementById(`${reportType}CustomRange`);
+  
+  if (periodSelect && customRange) {
+    customRange.style.display = periodSelect.value === 'custom' ? '' : 'none';
+  }
+}
+
+// دوال تعديل وحذف التسديدات والمصروفات من تقرير الشركاء
+function editPaymentFromPartner(paymentId) {
+  const payment = data.payments.find(p => p.id === paymentId);
+  if (!payment) {
+    showNotification('لم يتم العثور على التسديد', 'error');
+    return;
+  }
+  
+  // استدعاء دالة التعديل من payments.js
+  if (typeof editPayment === 'function') {
+    editPayment(paymentId);
+  } else {
+    showNotification('دالة التعديل غير متوفرة', 'error');
+  }
+}
+
+function deletePaymentFromPartner(paymentId) {
+  if (!confirm('هل أنت متأكد من حذف هذا التسديد؟')) return;
+  
+  const payment = data.payments.find(p => p.id === paymentId);
+  if (!payment) {
+    showNotification('لم يتم العثور على التسديد', 'error');
+    return;
+  }
+  
+  // استدعاء دالة الحذف من payments.js
+  if (typeof deletePayment === 'function') {
+    deletePayment(paymentId);
+    // تحديث تقرير الشركاء بعد الحذف
+    setTimeout(() => generatePartnerReports(), 100);
+  } else {
+    showNotification('دالة الحذف غير متوفرة', 'error');
+  }
+}
+
+function editExpenseFromPartner(expenseId) {
+  const expense = data.expenses.find(e => e.id === expenseId);
+  if (!expense) {
+    showNotification('لم يتم العثور على المصروف', 'error');
+    return;
+  }
+  
+  // استدعاء دالة التعديل من expenses.js
+  if (typeof editExpense === 'function') {
+    editExpense(expenseId);
+  } else {
+    showNotification('دالة التعديل غير متوفرة', 'error');
+  }
+}
+
+function deleteExpenseFromPartner(expenseId) {
+  if (!confirm('هل أنت متأكد من حذف هذا المصروف؟')) return;
+  
+  const expense = data.expenses.find(e => e.id === expenseId);
+  if (!expense) {
+    showNotification('لم يتم العثور على المصروف', 'error');
+    return;
+  }
+  
+  // استدعاء دالة الحذف من expenses.js
+  if (typeof deleteExpense === 'function') {
+    deleteExpense(expenseId);
+    // تحديث تقرير الشركاء بعد الحذف
+    setTimeout(() => generatePartnerReports(), 100);
+  } else {
+    showNotification('دالة الحذف غير متوفرة', 'error');
+  }
+}
+
+// تصدير الدوال للنطاق العام
+if (typeof window !== 'undefined') {
+  window.editPaymentFromPartner = editPaymentFromPartner;
+  window.deletePaymentFromPartner = deletePaymentFromPartner;
+  window.editExpenseFromPartner = editExpenseFromPartner;
+  window.deleteExpenseFromPartner = deleteExpenseFromPartner;
+}
+
 if (typeof window !== 'undefined'){
-	document.addEventListener('DOMContentLoaded', ()=>{ initReportsControls(); });
+	document.addEventListener('DOMContentLoaded', ()=>{ 
+    initReportsControls(); 
+    wireAdditionalReportsExports();
+    // مزامنة النطاقات المخصصة عند التحميل
+    syncCustomRange('summaries');
+    syncCustomRange('debts');
+    syncCustomRange('profit');
+  });
 	document.addEventListener('app-data-loaded', ()=>{ initReportsControls(); });
 }
+
+// تصدير الدوال للنطاق العام
+window.generatePartnerReports = generatePartnerReports;

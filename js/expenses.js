@@ -1,4 +1,10 @@
 // إدارة المصروفات
+
+/**
+ * فتح نموذج إضافة مصروف جديد
+ * يعيد تعيين جميع حقول النموذج إلى قيمها الافتراضية
+ * يضبط التاريخ على اليوم الحالي
+ */
 function addExpense() {
   document.getElementById('expenseModalTitle').textContent = 'إضافة مصروف جديد';
   document.getElementById('expenseId').value = '';
@@ -12,6 +18,11 @@ function addExpense() {
   const modal = new bootstrap.Modal(document.getElementById('expenseModal')); modal.show();
 }
 
+/**
+ * فتح نموذج تعديل مصروف موجود
+ * يملأ النموذج بالبيانات الحالية للمصروف
+ * @param {string} id - معرف المصروف المراد تعديله
+ */
 function editExpense(id) {
   const expense = data.expenses.find(e => e.id === id); if (!expense) return;
   document.getElementById('expenseModalTitle').textContent = 'تعديل المصروف';
@@ -25,6 +36,13 @@ function editExpense(id) {
   const modal = new bootstrap.Modal(document.getElementById('expenseModal')); modal.show();
 }
 
+/**
+ * حذف مصروف من السجلات
+ * يطلب تأكيد من المستخدم قبل الحذف
+ * ينقل المصروف المحذوف إلى سلة المحذوفات
+ * يحدث جميع الجداول والتقارير المتعلقة
+ * @param {string} id - معرف المصروف المراد حذفه
+ */
 function deleteExpense(id) {
   if (!confirm('هل أنت متأكد من حذف هذا المصروف؟')) return;
   const removed = data.expenses.find(e => e.id === id);
@@ -34,12 +52,18 @@ function deleteExpense(id) {
   showNotification('تم حذف المصروف بنجاح', 'success');
 }
 
+/**
+ * حفظ بيانات المصروف (إضافة جديد أو تحديث موجود)
+ * يتحقق من صحة البيانات المدخلة
+ * يحفظ نوع المصروف في قائمة الأنواع المحفوظة
+ * يحدث جميع الجداول والتقارير ذات الصلة
+ */
 function saveExpense() {
   const id = document.getElementById('expenseId').value;
   const type = document.getElementById('expenseType').value;
   const amount = parseFormattedNumber(document.getElementById('expenseAmount').value) || 0;
   const notes = document.getElementById('expenseNotes').value;
-  const date = formatDateEn(document.getElementById('expenseDate').value || today);
+  const date = document.getElementById('expenseDate').value ? formatDateEn(document.getElementById('expenseDate').value) : today;
   const addLater = document.getElementById('addLater').checked;
   if (!type) { showNotification('يرجى إدخال نوع المصروف', 'error'); return; }
   if (id) {
@@ -59,10 +83,16 @@ function saveExpense() {
   renderExpensesTable();
   updateDashboard();
   updateProfitReport();
-  const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal')); modal.hide();
+  if (typeof generatePartnerReports === 'function') generatePartnerReports();
+  const modal = bootstrap.Modal.getInstance(document.getElementById('expenseModal')); 
+  modal.hide();
+  if (typeof cleanupModalBackdrops === 'function') setTimeout(cleanupModalBackdrops, 300);
 }
 
-// State for search/sort/pagination and selection
+/**
+ * حالة جدول المصروفات
+ * يحتفظ بحالة البحث، الترتيب، ورقم الصفحة الحالية
+ */
 const expensesState = {
   search: '',
   sortKey: 'date',
@@ -70,8 +100,19 @@ const expensesState = {
   page: 1,
   pageSize: 10,
 };
+/**
+ * مجموعة المصروفات المحددة للعمليات الجماعية
+ */
 const expensesSelection = new Set();
 
+/**
+ * تطبيق البحث والترتيب والتقسيم إلى صفحات
+ * يفلتر العناصر بناءً على البحث
+ * يرتب العناصر حسب المفتاح والاتجاه المحدد
+ * يقسم النتائج إلى صفحات
+ * @param {Array} items - قائمة العناصر للمعالجة
+ * @returns {Object} كائن يحتوي على عناصر الصفحة، الإجمالي، وعدد الصفحات
+ */
 function applySearchSortPaginate(items){
   const q = (expensesState.search || '').toLowerCase();
   let arr = items.filter(e => {
@@ -92,6 +133,13 @@ function applySearchSortPaginate(items){
   return { pageItems, total, pages };
 }
 
+/**
+ * عرض عناصر التحكم في جدول المصروفات
+ * يعرض معلومات الصفحة وأزرار التنقل
+ * يعرض عدد العناصر المحددة وأزرار العمليات الجماعية
+ * @param {number} total - إجمالي عدد العناصر
+ * @param {number} pages - عدد الصفحات
+ */
 function renderExpensesControls(total, pages){
   let footer = document.getElementById('expensesFooter');
   if (!footer) {
@@ -206,6 +254,14 @@ function getFilteredExpensesForExport(){
 // expose for other modules
 window.__getFilteredExpensesForExport = getFilteredExpensesForExport;
 
+// تصدير الدوال للنطاق العام
+if (typeof window !== 'undefined') {
+  window.addExpense = addExpense;
+  window.saveExpense = saveExpense;
+  window.editExpense = editExpense;
+  window.deleteExpense = deleteExpense;
+}
+
 function renderExpensesTable() {
   try {
     const table = document.getElementById('expensesTable'); if (!table) return;
@@ -306,3 +362,6 @@ function renderExpensesTable() {
   if (addCustomBtn) addCustomBtn.addEventListener('click', () => { const inp = document.getElementById('expenseTypeCustom'); const val = (inp?.value || '').trim(); if (!val) return; const types = getAllExpenseTypes(); if (!types.includes(val)) saveExpenseTypes([...(loadSavedExpenseTypes()), val]); selectExpenseType(val); if (inp) inp.value = ''; });
   const expenseModalEl = document.getElementById('expenseModal'); if (expenseModalEl) expenseModalEl.addEventListener('show.bs.modal', () => { const currentVal = document.getElementById('expenseType')?.value || ''; renderExpenseTypeChips(currentVal); });
 })();
+
+// تصدير الدوال للنطاق العام
+window.renderExpensesTable = () => renderExpensesControls(renderExpensesTable());
